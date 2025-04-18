@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <title>SkillBoost - Admin Réclamations</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Free HTML Templates" name="keywords">
+    <meta content="Free HTML Templates" name="description">
+
+    <!-- Favicon -->
+    <link href="img/favicon.ico" rel="icon">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icon Font Stylesheet -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+    <link href="lib/animate/animate.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <link href="css/style.css" rel="stylesheet">
+    
+    <style>
+        /* Styles personnalisés */
+        .dashboard-container {
+            padding: 2rem 0;
+            min-height: calc(100vh - 300px);
+        }
+        .stat-card {
+            border-radius: 10px;
+            padding: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
+            transition: transform 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+        }
+        .status-badge {
+            padding: 0.35rem 0.65rem;
+            border-radius: 50rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-new { background-color: #ffc107; color: #212529; }
+        .status-in-progress { background-color: #17a2b8; color: white; }
+        .status-resolved { background-color: #28a745; color: white; }
+        .status-rejected { background-color: #dc3545; color: white; }
+        .action-btn { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table th {
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+        .priority-high { color: #dc3545; font-weight: bold; }
+        .priority-medium { color: #fd7e14; font-weight: bold; }
+        .priority-low { color: #28a745; font-weight: bold; }
+        .admin-notes {
+            background-color: #f8f9fa;
+            border-left: 4px solid #0d6efd;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Spinner Start -->
+    <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+        <div class="spinner"></div>
+    </div>
+    <!-- Spinner End -->
+
+    <!-- Topbar Start -->
+    <div class="container-fluid bg-dark px-5 d-none d-lg-block">
+        <div class="row gx-0">
+            <div class="col-lg-8 text-center text-lg-start mb-2 mb-lg-0">
+                <div class="d-inline-flex align-items-center" style="height: 45px;">
+                    <small class="me-3 text-light"><i class="fa fa-map-marker-alt me-2"></i>Bloc E, Esprit , Cite La Gazelle</small>
+                    <small class="me-3 text-light"><i class="fa fa-phone-alt me-2"></i>+216 90 044 054</small>
+                    <small class="text-light"><i class="fa fa-envelope-open me-2"></i>SkillBoost@gmail.com</small>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center text-lg-end">
+                <div class="d-inline-flex align-items-center" style="height: 45px;">
+                    <small class="text-light"><i class="fa fa-user-shield me-2"></i>Espace Administrateur</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Topbar End -->
+
+    <!-- Navbar & Carousel Start -->
+    <div class="container-fluid position-relative p-0">
+        <nav class="navbar navbar-expand-lg navbar-dark px-5 py-3 py-lg-0">
+            <a href="index.html" class="navbar-brand p-0">
+                <h1 class="m-0"><i class="fa fa-user-tie me-2"></i>SkillBoost</h1>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                <span class="fa fa-bars"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <div class="navbar-nav ms-auto py-0">
+                    <a href="admin-dashboard.html" class="nav-item nav-link">Tableau de bord</a>
+                    <a href="admin-users.html" class="nav-item nav-link">Utilisateurs</a>
+                    <a href="admin-projects.html" class="nav-item nav-link">Projets</a>
+                    <a href="admin-formations.html" class="nav-item nav-link">Formations</a>
+                    <a href="admin-events.html" class="nav-item nav-link">Événements</a>
+                    <a href="admin-investments.html" class="nav-item nav-link">Investissements</a>
+                    <a href="admin-reclamations.html" class="nav-item nav-link active">Réclamations</a>
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fa fa-user-circle me-1"></i> Admin
+                        </a>
+                        <div class="dropdown-menu m-0">
+                            <a href="admin-profile.html" class="dropdown-item">Profil</a>
+                            <a href="admin-settings.html" class="dropdown-item">Paramètres</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="logout.html" class="dropdown-item">Déconnexion</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-container">
+            <div class="container">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Gestion des Réclamations</h2>
+                            <div>
+                                <button id="exportBtn" class="btn btn-outline-secondary me-2">
+                                    <i class="fas fa-file-export me-1"></i> Exporter
+                                </button>
+                                <button id="addBtn" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i> Nouvelle Réclamation
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filtres Admin -->
+                        <div class="filter-section mb-4">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Statut</label>
+                                    <select class="form-select" id="filterStatus">
+                                        <option value="">Tous</option>
+                                        <option value="new">Nouveau</option>
+                                        <option value="in-progress">En cours</option>
+                                        <option value="resolved">Résolu</option>
+                                        <option value="rejected">Rejeté</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="filterType">
+                                        <option value="">Tous</option>
+                                        <option value="technique">Technique</option>
+                                        <option value="paiement">Paiement</option>
+                                        <option value="service">Service client</option>
+                                        <option value="autre">Autre</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Priorité</label>
+                                    <select class="form-select" id="filterPriority">
+                                        <option value="">Toutes</option>
+                                        <option value="high">Haute</option>
+                                        <option value="medium">Moyenne</option>
+                                        <option value="low">Basse</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Date</label>
+                                    <select class="form-select" id="filterDate">
+                                        <option value="">Toutes</option>
+                                        <option value="today">Aujourd'hui</option>
+                                        <option value="week">Cette semaine</option>
+                                        <option value="month">Ce mois</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cartes Statistiques -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="stat-card bg-primary">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="count" id="count-new">0</div>
+                                            <div class="title">Nouvelles</div>
+                                        </div>
+                                        <i class="fas fa-exclamation-circle fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-info">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="count" id="count-in-progress">0</div>
+                                            <div class="title">En cours</div>
+                                        </div>
+                                        <i class="fas fa-spinner fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-success">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="count" id="count-resolved">0</div>
+                                            <div class="title">Résolues</div>
+                                        </div>
+                                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-danger">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="count" id="count-urgent">0</div>
+                                            <div class="title">Urgentes</div>
+                                        </div>
+                                        <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tableau des Réclamations -->
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="reclamationsTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Utilisateur</th>
+                                                <th>Email</th>
+                                                <th>Sujet</th>
+                                                <th>Type</th>
+                                                <th>Priorité</th>
+                                                <th>Date</th>
+                                                <th>Statut</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="reclamationsBody">
+                                            <!-- Rempli dynamiquement -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <nav class="mt-3">
+                                    <ul class="pagination justify-content-center" id="pagination">
+                                        <!-- Pagination dynamique -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal CRUD -->
+        <div class="modal fade" id="crudModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title" id="modalTitle">Détails de la Réclamation</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="reclamationForm">
+                            <input type="hidden" id="editId">
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">ID Réclamation</label>
+                                    <input type="text" class="form-control" id="displayId" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Date de création</label>
+                                    <input type="text" class="form-control" id="displayDate" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nom Complet</label>
+                                    <input type="text" class="form-control" id="editFullName" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="editEmail" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Sujet *</label>
+                                    <input type="text" class="form-control" id="editSubject" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Type *</label>
+                                    <select class="form-select" id="editType" required>
+                                        <option value="technique">Technique</option>
+                                        <option value="paiement">Paiement</option>
+                                        <option value="service">Service client</option>
+                                        <option value="autre">Autre</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Description *</label>
+                                <textarea class="form-control" id="editDescription" rows="4" required readonly></textarea>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Priorité *</label>
+                                    <select class="form-select" id="editPriority" required>
+                                        <option value="high">Haute</option>
+                                        <option value="medium">Moyenne</option>
+                                        <option value="low">Basse</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Statut *</label>
+                                    <select class="form-select" id="editStatus" required>
+                                        <option value="new">Nouveau</option>
+                                        <option value="in-progress">En cours</option>
+                                        <option value="resolved">Résolu</option>
+                                        <option value="rejected">Rejeté</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Notes de l'admin</label>
+                                <textarea class="form-control" id="editAdminNotes" rows="2" placeholder="Ajoutez des notes internes..."></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Pièces jointes</label>
+                                <div id="attachmentsList" class="mb-2">
+                                    <!-- Liste des pièces jointes -->
+                                </div>
+                                <input type="file" class="form-control" id="editAttachments" multiple>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button type="button" class="btn btn-danger" id="deleteBtn">Supprimer</button>
+                        <button type="button" class="btn btn-success" id="saveBtn">Enregistrer</button>
+                        <button type="button" class="btn btn-primary" id="resolveBtn" style="display:none;">
+                            <i class="fas fa-check-circle me-1"></i> Marquer comme résolu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Start -->
+    <div class="container-fluid bg-dark text-light mt-5 wow fadeInUp" data-wow-delay="0.1s">
+        <div class="container">
+            <div class="row gx-5">
+                <div class="col-lg-8 col-md-6">
+                    <div class="row gx-5">
+                        <div class="col-lg-4 col-md-12 pt-5 mb-5">
+                            <div class="section-title section-title-sm position-relative pb-3 mb-4">
+                                <h3 class="text-light mb-0">Contact</h3>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <i class="bi bi-geo-alt text-primary me-2"></i>
+                                <p class="mb-0">123 Rue Tunis,Tunisie, TN</p>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <i class="bi bi-envelope-open text-primary me-2"></i>
+                                <p class="mb-0">SkillBoost@gmail.com</p>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <i class="bi bi-telephone text-primary me-2"></i>
+                                <p class="mb-0">+216 90 044 054</p>
+                            </div>
+                            <div class="d-flex mt-4">
+                                <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-twitter fw-normal"></i></a>
+                                <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-facebook-f fw-normal"></i></a>
+                                <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-linkedin-in fw-normal"></i></a>
+                                <a class="btn btn-primary btn-square" href="#"><i class="fab fa-instagram fw-normal"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid text-white" style="background: #061429;">
+        <div class="container text-center">
+            <div class="row justify-content-end">
+                <div class="col-lg-8 col-md-6">
+                    <div class="d-flex align-items-center justify-content-center" style="height: 75px;">
+                        <p class="mb-0">&copy; <a class="text-white border-bottom" href="#">SkillBoost</a>. All Rights Reserved.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Footer End -->
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded back-to-top"><i class="bi bi-arrow-up"></i></a>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/wow/wow.min.js"></script>
+    <script src="lib/easing/easing.min.js"></script>
+    <script src="lib/waypoints/waypoints.min.js"></script>
+    <script src="lib/counterup/counterup.min.js"></script>
+    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="js/main.js"></script>
+
+    <script>
+        // Configuration
+        const ITEMS_PER_PAGE = 10;
+        let currentPage = 1;
+        let filteredReclamations = [];
+        
+        // Données (simulées - remplacer par API réelle)
+        let reclamations = JSON.parse(localStorage.getItem('reclamations')) || [];
+        
+        // Initialiser avec des données de démo si vide
+        if (reclamations.length === 0) {
+            reclamations = [
+                {
+                    id: generateId(),
+                    fullName: "Mohamed Ali",
+                    email: "mohamed.ali@example.com",
+                    subject: "Problème de connexion",
+                    type: "technique",
+                    description: "Je ne peux pas me connecter à mon compte depuis hier.",
+                    priority: "high",
+                    status: "new",
+                    date: new Date().toISOString(),
+                    adminNotes: "",
+                    attachments: []
+                },
+                {
+                    id: generateId(),
+                    fullName: "Fatma Ben Ahmed",
+                    email: "fatma.benahmed@example.com",
+                    subject: "Remboursement demandé",
+                    type: "paiement",
+                    description: "J'ai payé pour une formation mais je n'ai pas pu y assister. Je demande un remboursement.",
+                    priority: "medium",
+                    status: "in-progress",
+                    date: new Date(Date.now() - 86400000).toISOString(), // Hier
+                    adminNotes: "Vérifier le paiement et la politique de remboursement",
+                    attachments: []
+                },
+                {
+                    id: generateId(),
+                    fullName: "Samir Toumi",
+                    email: "samir.toumi@example.com",
+                    subject: "Question sur le contenu",
+                    type: "service",
+                    description: "J'ai une question sur le contenu de la formation React avancé.",
+                    priority: "low",
+                    status: "resolved",
+                    date: new Date(Date.now() - 259200000).toISOString(), // Il y a 3 jours
+                    adminNotes: "Répondu par email le 15/05/2023",
+                    attachments: []
+                }
+            ];
+            localStorage.setItem('reclamations', JSON.stringify(reclamations));
+        }
+        
+        // Fonction pour générer un ID unique
+        function generateId() {
+            return 'REC-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+        }
+
+        // Éléments DOM
+        const modal = new bootstrap.Modal('#crudModal');
+        const statusField = document.getElementById('statusField');
+
+        // Afficher les réclamations avec pagination
+        function renderReclamations(page = 1) {
+            currentPage = page;
+            const tbody = document.getElementById('reclamationsBody');
+            tbody.innerHTML = '';
+
+            // Appliquer les filtres
+            applyFilters();
+            
+            // Calculer les indices de pagination
+            const startIdx = (page - 1) * ITEMS_PER_PAGE;
+            const endIdx = startIdx + ITEMS_PER_PAGE;
+            const paginatedReclamations = filteredReclamations.slice(startIdx, endIdx);
+
+            // Remplir le tableau
+            paginatedReclamations.forEach((rec, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${rec.id}</td>
+                    <td>${rec.fullName || 'Non spécifié'}</td>
+                    <td>${rec.email || 'Non spécifié'}</td>
+                    <td>${rec.subject}</td>
+                    <td>${getTypeText(rec.type)}</td>
+                    <td class="priority-${rec.priority}">${getPriorityText(rec.priority)}</td>
+                    <td>${formatDate(rec.date)}</td>
+                    <td><span class="status-badge ${getStatusClass(rec.status)}">${getStatusText(rec.status)}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary action-btn view-btn" data-id="${findIndexById(rec.id)}" title="Voir">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-info action-btn edit-btn" data-id="${findIndexById(rec.id)}" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger action-btn delete-btn" data-id="${findIndexById(rec.id)}" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Mettre à jour la pagination
+            renderPagination();
+            
+            // Mettre à jour les statistiques
+            updateStats();
+        }
+
+        // Appliquer les filtres
+        function applyFilters() {
+            const statusFilter = document.getElementById('filterStatus').value;
+            const typeFilter = document.getElementById('filterType').value;
+            const priorityFilter = document.getElementById('filterPriority').value;
+            const dateFilter = document.getElementById('filterDate').value;
+            
+            filteredReclamations = reclamations.filter(rec => {
+                // Filtre par statut
+                if (statusFilter && rec.status !== statusFilter) return false;
+                
+                // Filtre par type
+                if (typeFilter && rec.type !== typeFilter) return false;
+                
+                // Filtre par priorité
+                if (priorityFilter && rec.priority !== priorityFilter) return false;
+                
+                // Filtre par date
+                if (dateFilter) {
+                    const recDate = new Date(rec.date);
+                    const today = new Date();
+                    
+                    if (dateFilter === 'today') {
+                        return recDate.toDateString() === today.toDateString();
+                    } else if (dateFilter === 'week') {
+                        const weekStart = new Date(today);
+                        weekStart.setDate(today.getDate() - today.getDay());
+                        return recDate >= weekStart;
+                    } else if (dateFilter === 'month') {
+                        return recDate.getMonth() === today.getMonth() && 
+                               recDate.getFullYear() === today.getFullYear();
+                    }
+                }
+                
+                return true;
+            });
+            
+            // Trier par date (les plus récentes en premier)
+            filteredReclamations.sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+
+        // Mettre à jour les statistiques
+        function updateStats() {
+            const stats = {
+                new: 0,
+                inProgress: 0,
+                resolved: 0,
+                urgent: 0
+            };
+
+            reclamations.forEach(rec => {
+                if (rec.status === 'new') stats.new++;
+                if (rec.status === 'in-progress') stats.inProgress++;
+                if (rec.status === 'resolved') stats.resolved++;
+                if (rec.priority === 'high') stats.urgent++;
+            });
+
+            document.getElementById('count-new').textContent = stats.new;
+            document.getElementById('count-in-progress').textContent = stats.inProgress;
+            document.getElementById('count-resolved').textContent = stats.resolved;
+            document.getElementById('count-urgent').textContent = stats.urgent;
+        }
+
+        // Afficher la pagination
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredReclamations.length / ITEMS_PER_PAGE);
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            // Bouton Précédent
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>`;
+            prevLi.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (currentPage > 1) renderReclamations(currentPage - 1);
+            });
+            pagination.appendChild(prevLi);
+            
+            // Pages
+            for (let i = 1; i <= totalPages; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                pageLi.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    renderReclamations(i);
+                });
+                pagination.appendChild(pageLi);
+            }
+            
+            // Bouton Suivant
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>`;
+            nextLi.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (currentPage < totalPages) renderReclamations(currentPage + 1);
+            });
+            pagination.appendChild(nextLi);
+        }
+
+        // Gestion des statuts
+        function getStatusClass(status) {
+            return {
+                'new': 'status-new',
+                'in-progress': 'status-in-progress',
+                'resolved': 'status-resolved',
+                'rejected': 'status-rejected'
+            }[status] || '';
+        }
+
+        function getStatusText(status) {
+            return {
+                'new': 'Nouveau',
+                'in-progress': 'En cours',
+                'resolved': 'Résolu',
+                'rejected': 'Rejeté'
+            }[status] || status;
+        }
+
+        function getTypeText(type) {
+            return {
+                'technique': 'Technique',
+                'paiement': 'Paiement',
+                'service': 'Service client',
+                'autre': 'Autre'
+            }[type] || type;
+        }
+        
+        function getPriorityText(priority) {
+            return {
+                'high': 'Haute',
+                'medium': 'Moyenne',
+                'low': 'Basse'
+            }[priority] || priority;
+        }
+        
+        function formatDate(dateString) {
+            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            return new Date(dateString).toLocaleDateString('fr-FR', options);
+        }
+        
+        function findIndexById(id) {
+            return reclamations.findIndex(rec => rec.id === id);
+        }
+
+        // Ouvrir le modal
+        function openModal(id = null, action = 'view') {
+            const form = document.getElementById('reclamationForm');
+            
+            if (id !== null) {
+                const rec = reclamations[id];
+                document.getElementById('editId').value = id;
+                document.getElementById('displayId').value = rec.id;
+                document.getElementById('displayDate').value = formatDate(rec.date);
+                document.getElementById('editFullName').value = rec.fullName || '';
+                document.getElementById('editEmail').value = rec.email || '';
+                document.getElementById('editSubject').value = rec.subject || '';
+                document.getElementById('editType').value = rec.type || '';
+                document.getElementById('editDescription').value = rec.description || '';
+                document.getElementById('editPriority').value = rec.priority || 'medium';
+                document.getElementById('editStatus').value = rec.status || 'new';
+                document.getElementById('editAdminNotes').value = rec.adminNotes || '';
+                
+                // Afficher les pièces jointes
+                const attachmentsList = document.getElementById('attachmentsList');
+                attachmentsList.innerHTML = rec.attachments && rec.attachments.length > 0 ? 
+                    rec.attachments.map(att => 
+                        `<div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="fas fa-paperclip me-2"></i>${att.name}</span>
+                            <button class="btn btn-sm btn-outline-danger" data-attachment="${att.name}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>`
+                    ).join('') : 
+                    '<div class="text-muted">Aucune pièce jointe</div>';
+            } else {
+                form.reset();
+                document.getElementById('editId').value = '';
+                document.getElementById('displayId').value = generateId();
+                document.getElementById('displayDate').value = formatDate(new Date());
+                document.getElementById('editStatus').value = 'new';
+                document.getElementById('editPriority').value = 'medium';
+                document.getElementById('attachmentsList').innerHTML = '<div class="text-muted">Aucune pièce jointe</div>';
+            }
+
+            // Configurer le modal selon l'action
+            document.getElementById('modalTitle').textContent = 
+                action === 'view' ? 'Détails de la Réclamation' : 
+                action === 'edit' ? 'Modifier la Réclamation' : 'Nouvelle Réclamation';
+            
+            // Afficher/masquer les boutons selon l'action
+            document.getElementById('deleteBtn').style.display = 
+                (action === 'view' || action === 'edit') ? 'inline-block' : 'none';
+            document.getElementById('saveBtn').style.display = 
+                action === 'view' ? 'none' : 'inline-block';
+            document.getElementById('resolveBtn').style.display = 
+                (action === 'view' && document.getElementById('editStatus').value !== 'resolved') ? 'inline-block' : 'none';
+            
+            // Activer/désactiver les champs selon l'action
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if (input.id !== 'editAdminNotes' && input.id !== 'editAttachments') {
+                    input.disabled = action === 'view';
+                }
+            });
+            
+            modal.show();
+        }
+
+        // Enregistrer
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const id = document.getElementById('editId').value;
+            const recData = {
+                id: document.getElementById('displayId').value,
+                fullName: document.getElementById('editFullName').value,
+                email: document.getElementById('editEmail').value,
+                subject: document.getElementById('editSubject').value,
+                type: document.getElementById('editType').value,
+                description: document.getElementById('editDescription').value,
+                priority: document.getElementById('editPriority').value,
+                status: document.getElementById('editStatus').value,
+                adminNotes: document.getElementById('editAdminNotes').value,
+                date: id === '' ? new Date().toISOString() : reclamations[id].date,
+                attachments: id === '' ? [] : reclamations[id].attachments
+            };
+
+            if (id === '') {
+                // Nouvelle réclamation
+                reclamations.push(recData);
+            } else {
+                // Mise à jour
+                reclamations[id] = recData;
+            }
+
+            localStorage.setItem('reclamations', JSON.stringify(reclamations));
+            renderReclamations(currentPage);
+            modal.hide();
+        });
+
+        // Marquer comme résolu
+        document.getElementById('resolveBtn').addEventListener('click', () => {
+            const id = document.getElementById('editId').value;
+            if (id !== '') {
+                reclamations[id].status = 'resolved';
+                reclamations[id].adminNotes = document.getElementById('editAdminNotes').value || 
+                    `Résolu par l'admin le ${formatDate(new Date())}`;
+                
+                localStorage.setItem('reclamations', JSON.stringify(reclamations));
+                renderReclamations(currentPage);
+                modal.hide();
+            }
+        });
+
+        // Supprimer
+        document.getElementById('deleteBtn').addEventListener('click', () => {
+            const id = document.getElementById('editId').value;
+            if (confirm('Voulez-vous vraiment supprimer cette réclamation ? Cette action est irréversible.')) {
+                reclamations.splice(id, 1);
+                localStorage.setItem('reclamations', JSON.stringify(reclamations));
+                renderReclamations(currentPage);
+                modal.hide();
+            }
+        });
+
+        // Exporter les données
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            // Simplifié pour l'exemple - en réalité, générer un CSV ou Excel
+            let csvContent = "ID,Nom,Email,Sujet,Type,Priorité,Statut,Date\n";
+            
+            filteredReclamations.forEach(rec => {
+                csvContent += `"${rec.id}","${rec.fullName}","${rec.email}","${rec.subject}",` +
+                             `"${getTypeText(rec.type)}","${getPriorityText(rec.priority)}",` +
+                             `"${getStatusText(rec.status)}","${formatDate(rec.date)}"\n`;
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `reclamations_${formatDate(new Date())}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            alert('Export des réclamations effectué avec succès!');
+        });
+
+        // Gestion des filtres
+        document.querySelectorAll('#filterStatus, #filterType, #filterPriority, #filterDate').forEach(filter => {
+            filter.addEventListener('change', () => {
+                renderReclamations(1); // Retour à la première page
+            });
+        });
+
+        // Événements
+        document.getElementById('addBtn').addEventListener('click', () => openModal(null, 'create'));
+        
+        // Déléguation des événements pour les boutons dynamiques
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('view-btn') || e.target.parentElement.classList.contains('view-btn')) {
+                const btn = e.target.classList.contains('view-btn') ? e.target : e.target.parentElement;
+                openModal(btn.dataset.id, 'view');
+            }
+            else if (e.target.classList.contains('edit-btn') || e.target.parentElement.classList.contains('edit-btn')) {
+                const btn = e.target.classList.contains('edit-btn') ? e.target : e.target.parentElement;
+                openModal(btn.dataset.id, 'edit');
+            }
+            else if (e.target.classList.contains('delete-btn') || e.target.parentElement.classList.contains('delete-btn')) {
+                const btn = e.target.classList.contains('delete-btn') ? e.target : e.target.parentElement;
+                if (confirm('Supprimer cette réclamation ? Cette action est irréversible.')) {
+                    reclamations.splice(btn.dataset.id, 1);
+                    localStorage.setItem('reclamations', JSON.stringify(reclamations));
+                    renderReclamations(currentPage);
+                }
+            }
+        });
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            renderReclamations();
+            
+            // Simuler un délai de chargement pour le spinner
+            setTimeout(() => {
+                document.getElementById('spinner').classList.remove('show');
+            }, 500);
+        });
+    </script>
+</body>
+
+</html>

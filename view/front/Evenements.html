@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulaire de Réclamations</title>
+    <style>
+        :root {
+            --primary-color: #3a7ca5;  /* Bleu principal */
+            --primary-hover: #2f6690;  /* Bleu plus foncé */
+            --accent-color: #4cb5ae;  /* Turquoise */
+            --light-color: #f8f9fa;    /* Gris très clair */
+            --medium-color: #e9ecef;   /* Gris moyen */
+            --dark-color: #495057;      /* Gris foncé */
+            --text-color: #212529;      /* Noir de texte */
+            --error-color: #dc3545;     /* Rouge pour erreurs */
+            --success-color: #28a745;   /* Vert pour succès */
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            background-image: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--primary-color), var(--accent-color));
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--medium-color);
+            position: relative;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            color: var(--dark-color);
+            font-size: 1.1em;
+            font-weight: 400;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-color);
+            transition: all 0.3s ease;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--medium-color);
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background-color: var(--light-color);
+        }
+        
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="tel"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(58, 124, 165, 0.15);
+            background-color: white;
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+        
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 1em;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .btn-submit {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+        
+        .btn-submit:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(58, 124, 165, 0.25);
+        }
+        
+        .btn-home {
+            background-color: white;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            margin-right: 15px;
+        }
+        
+        .btn-home:hover {
+            background-color: var(--light-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(58, 124, 165, 0.15);
+        }
+        
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .required-field::after {
+            content: " *";
+            color: var(--error-color);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--medium-color);
+            color: var(--dark-color);
+            font-size: 0.9em;
+        }
+        
+        /* Animation pour les champs */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px;
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn-home {
+                margin-right: 0;
+                margin-bottom: 15px;
+                width: 100%;
+            }
+            
+            .btn-submit {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="evenements.html" class="dropdown-item">Gestion Des evenements</a>
+
+            <h1>Formulaire de evenements</h1>
+            <p class="subtitle">Nous prenons vos préoccupations au sérieux</p>
+        </header>
+        
+        <form action="#" method="post">
+            <div class="form-group">
+                <label for="name" class="required-field">Nom complet</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email" class="required-field">Adresse email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Numéro de téléphone</label>
+                <input type="tel" id="phone" name="phone">
+            </div>
+            
+            <div class="form-group">
+                <label for="subject" class="required-field">Type De l'evenements</label>
+                <select id="subject" name="subject" required>
+                    <option value="">-- Sélectionnez un type --</option>
+                    <option value="service">Cours en ligne </option>
+                    <option value="product">Cours presentielle</option>
+                    <option value="delivery">conferhence</option>
+                    <option value="billing">hybride</option>
+                    <option value="other">Autre</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="message" class="required-field">Détails de l'evenement </label>
+                <textarea id="message" name="message" required placeholder="Veuillez décrire votre réclamation en détail..."></textarea>
+            </div>
+            
+            <div class="form-group button-group">
+                <a href="index.html" class="btn btn-home">Retour à l'accueil</a>
+                <button type="submit" class="btn btn-submit">Ajouter</button>
+            </div>
+        </form>
+        
+        <footer>
+            <p>Notre équipe traitera votre demande concernant l’événement dans les plus brefs délais.
+            </p>
+            <p>© 2023 Service Client - Tous droits réservés</p>
+        </footer>
+    </div>
+</body>
+</html>
