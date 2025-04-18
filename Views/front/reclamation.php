@@ -1,202 +1,211 @@
 <?php
-// ==============================================
-// PARTIE PHP - TRAITEMENT DU FORMULAIRE
-// ==============================================
-
-$message = '';
-$alert_class = '';
-
 // Connexion à la base de données
+$host = 'localhost';
+$dbname = 'skillboost';
+$username = 'root';
+$password = '';
 try {
-    $db = new PDO('mysql:host=localhost;dbname=skillboost', 'root', '');
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion: " . $e->getMessage());
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Erreur de connexion : " . $e->getMessage());
 }
 
-// Traitement du formulaire
+// Récupérer l'ID de la réclamation depuis l'URL
+if (!isset($_GET['reclamation_id']) || !is_numeric($_GET['reclamation_id'])) {
+    die("ID de réclamation invalide.");
+}
+$reclamationId = intval($_GET['reclamation_id']);
+
+// Récupérer les détails de la réclamation
+$stmt = $pdo->prepare("SELECT * FROM reclamations WHERE id = :id");
+$stmt->execute([':id' => $reclamationId]);
+$reclamation = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$reclamation) {
+    die("Réclamation introuvable.");
+}
+
+// Ajouter une nouvelle réponse
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Nettoyage des données
-    $data = [
-        'full_name' => htmlspecialchars(trim($_POST['full_name'])),
-        'email' => filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL),
-        'subject' => htmlspecialchars(trim($_POST['subject'])),
-        'type' => htmlspecialchars($_POST['type']),
-        'priority' => htmlspecialchars($_POST['priority']),
-        'description' => htmlspecialchars(trim($_POST['description'])),
-        'status' => 'Nouveau',
-        'created_at' => date('Y-m-d H:i:s')
-    ];
-
-    // Validation supplémentaire côté serveur
-    $errors = [];
-    if (empty($data['full_name'])) $errors[] = "Le nom est requis";
-    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) $errors[] = "Email invalide";
-    if (strlen($data['description']) < 20) $errors[] = "La description doit faire au moins 20 caractères";
-
-    // Si pas d'erreurs, insertion en base
-    if (empty($errors)) {
-        try {
-            $stmt = $db->prepare("INSERT INTO reclamations 
-                                 (full_name, email, subject, type, priority, description, status, created_at) 
-                                 VALUES (:full_name, :email, :subject, :type, :priority, :description, :status, :created_at)");
-            
-            if ($stmt->execute($data)) {
-                $message = "Votre réclamation a été envoyée avec succès!";
-                $alert_class = "success";
-                
-                // Réinitialisation des champs après succès
-                $_POST = [];
-            }
-        } catch(PDOException $e) {
-            $message = "Erreur technique: " . $e->getMessage();
-            $alert_class = "danger";
-        }
-    } else {
-        $message = implode("<br>", $errors);
-        $alert_class = "warning";
+    if (isset($_POST['response'])) {
+        $adminId = 1; // Remplacez par l'ID de l'administrateur actuel
+        $response = htmlspecialchars($_POST['response']);
+        // Insérer la réponse dans la base de données
+        $stmt = $pdo->prepare("INSERT INTO responses (reclamation_id, admin_id, response, created_at) VALUES (:reclamation_id, :admin_id, :response, NOW())");
+        $stmt->execute([
+            ':reclamation_id' => $reclamationId,
+            ':admin_id' => $adminId,
+            ':response' => $response
+        ]);
+        // Redirection pour éviter la resoumission du formulaire
+        header("Location: reponsesreclamations.php?reclamation_id=" . $reclamationId);
+        exit();
     }
 }
-?>
 
+// Récupérer toutes les réponses pour cette réclamation
+$stmt = $pdo->prepare("SELECT * FROM responses WHERE reclamation_id = :reclamation_id ORDER BY created_at ASC");
+$stmt->execute([':reclamation_id' => $reclamationId]);
+$responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fonctions utilitaires
+function formatDate($dateString) {
+    return date('d/m/Y H:i', strtotime($dateString));
+}
+
+function getStatusClass($status) {
+    $classes = [
+        'new' => 'status-new',
+        'in-progress' => 'status-in-progress',
+        'resolved' => 'status-resolved',
+        'rejected' => 'status-rejected'
+    ];
+    return $classes[$status] ?? '';
+}
+
+function getStatusText($status) {
+    $texts = [
+        'new' => 'Nouveau',
+        'in-progress' => 'En cours',
+        'resolved' => 'Résolu',
+        'rejected' => 'Rejeté'
+    ];
+    return $texts[$status] ?? $status;
+}
+
+function getTypeText($type) {
+    $texts = [
+        'technique' => 'Technique',
+        'paiement' => 'Paiement',
+        'service' => 'Service client',
+        'autre' => 'Autre'
+    ];
+    return $texts[$type] ?? $type;
+}
+
+function getPriorityText($priority) {
+    $texts = [
+        'high' => 'Haute',
+        'medium' => 'Moyenne',
+        'low' => 'Basse'
+    ];
+    return $texts[$priority] ?? $priority;
+}
+?>
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="utf-8">
-    <title>Réclamations - SkillBoost</title>
+    <title>SkillBoost - Réponses à la Réclamation</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="Free HTML Templates" name="keywords">
     <meta content="Free HTML Templates" name="description">
-
     <!-- Favicon -->
     <link href="img/favicon.ico" rel="icon">
-
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <!-- Icon Font Stylesheet -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
-
     <!-- Libraries Stylesheet -->
     <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
     <link href="lib/animate/animate.min.css" rel="stylesheet">
-
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
-
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
-
     <style>
         /* Styles personnalisés */
-        .reclamation-form {
-            background: #ffffff;
-            padding: 40px;
+        .dashboard-container {
+            padding: 2rem 0;
+            min-height: calc(100vh - 300px);
+        }
+        .response-card {
+            border: 1px solid #ddd;
             border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            background-color: #f9f9f9;
         }
-        
-        .reclamation-form:hover {
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        .response-author {
+            font-weight: bold;
         }
-        
-        .form-control, .form-select {
-            height: 50px;
-            border-radius: 5px;
-            border: 1px solid #e1e1e1;
-            padding: 10px 15px;
-            transition: all 0.3s;
-        }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: #061429;
-            box-shadow: 0 0 0 0.25rem rgba(6, 20, 41, 0.25);
-        }
-        
-        textarea.form-control {
-            min-height: 150px;
-            resize: vertical;
-        }
-        
-        .btn-primary {
-            background-color: #061429;
-            border-color: #061429;
-            padding: 12px 30px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary:hover {
-            background-color: #0a1f3d;
-            transform: translateY(-2px);
-        }
-        
-        .error-message {
-            color: #dc3545;
+        .response-date {
             font-size: 0.85rem;
-            margin-top: 5px;
+            color: #6c757d;
         }
-        
-        .is-invalid {
-            border-color: #dc3545 !important;
+        .response-text {
+            margin-top: 0.5rem;
         }
-        
-        .is-valid {
-            border-color: #28a745 !important;
+        .status-badge {
+            padding: 0.35rem 0.65rem;
+            border-radius: 50rem;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
-        
-        .contact-image {
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
+        .status-new { background-color: #ffc107; color: #212529; }
+        .status-in-progress { background-color: #17a2b8; color: white; }
+        .status-resolved { background-color: #28a745; color: white; }
+        .status-rejected { background-color: #dc3545; color: white; }
+        .action-btn { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
         }
-        
-        .contact-image:hover {
-            transform: scale(1.02);
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table th {
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+        .priority-high { color: #dc3545; font-weight: bold; }
+        .priority-medium { color: #fd7e14; font-weight: bold; }
+        .priority-low { color: #28a745; font-weight: bold; }
+        .admin-notes {
+            background-color: #f8f9fa;
+            border-left: 4px solid #0d6efd;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
         }
     </style>
 </head>
-
 <body>
     <!-- Spinner Start -->
     <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
         <div class="spinner"></div>
     </div>
     <!-- Spinner End -->
-
     <!-- Topbar Start -->
     <div class="container-fluid bg-dark px-5 d-none d-lg-block">
         <div class="row gx-0">
             <div class="col-lg-8 text-center text-lg-start mb-2 mb-lg-0">
                 <div class="d-inline-flex align-items-center" style="height: 45px;">
-                    <small class="me-3 text-light"><i class="fa fa-map-marker-alt me-2"></i>Bloc E, Esprit, Cite La Gazelle</small>
+                    <small class="me-3 text-light"><i class="fa fa-map-marker-alt me-2"></i>Bloc E, Esprit , Cite La Gazelle</small>
                     <small class="me-3 text-light"><i class="fa fa-phone-alt me-2"></i>+216 90 044 054</small>
                     <small class="text-light"><i class="fa fa-envelope-open me-2"></i>SkillBoost@gmail.com</small>
                 </div>
             </div>
             <div class="col-lg-4 text-center text-lg-end">
                 <div class="d-inline-flex align-items-center" style="height: 45px;">
-                    <a class="btn btn-sm btn-outline-light btn-sm-square rounded-circle me-2" href="#"><i class="fab fa-facebook-f"></i></a>
-                    <a class="btn btn-sm btn-outline-light btn-sm-square rounded-circle me-2" href="#"><i class="fab fa-twitter"></i></a>
-                    <a class="btn btn-sm btn-outline-light btn-sm-square rounded-circle me-2" href="#"><i class="fab fa-linkedin-in"></i></a>
-                    <a class="btn btn-sm btn-outline-light btn-sm-square rounded-circle" href="#"><i class="fab fa-instagram"></i></a>
+                    <small class="text-light"><i class="fa fa-user-shield me-2"></i>Espace Administrateur</small>
                 </div>
             </div>
         </div>
     </div>
     <!-- Topbar End -->
-
-    <!-- Navbar Start -->
+    <!-- Navbar & Carousel Start -->
     <div class="container-fluid position-relative p-0">
         <nav class="navbar navbar-expand-lg navbar-dark px-5 py-3 py-lg-0">
-            <a href="index.php" class="navbar-brand p-0">
+            <a href="index.html" class="navbar-brand p-0">
                 <h1 class="m-0"><i class="fa fa-user-tie me-2"></i>SkillBoost</h1>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
@@ -204,188 +213,135 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </button>
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <div class="navbar-nav ms-auto py-0">
-                    <a href="index.php" class="nav-item nav-link">Accueil</a>
-                    <a href="login.php" class="nav-item nav-link">Connexion</a>
-                    <a href="#" class="nav-item nav-link">Projets</a>
-                    <a href="Formations.php" class="nav-item nav-link">Formations</a>
-                    <a href="evenements.php" class="nav-item nav-link">Événements</a>
-                    <a href="gestionInvestissement.php" class="nav-item nav-link">Investissements</a>
-                    <a href="reclamations.php" class="nav-item nav-link active">Réclamations</a>
+                    <a href="admin-dashboard.html" class="nav-item nav-link">Tableau de bord</a>
+                    <a href="admin-users.html" class="nav-item nav-link">Utilisateurs</a>
+                    <a href="admin-projects.html" class="nav-item nav-link">Projets</a>
+                    <a href="admin-formations.html" class="nav-item nav-link">Formations</a>
+                    <a href="admin-events.html" class="nav-item nav-link">Événements</a>
+                    <a href="admin-investments.html" class="nav-item nav-link">Investissements</a>
+                    <a href="admin-reclamations.php" class="nav-item nav-link active">Réclamations</a>
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fa fa-user-circle me-2"></i> Admin
+                        </a>
+                        <div class="dropdown-menu m-0">
+                            <a href="admin-profile.html" class="dropdown-item">Profil</a>
+                            <a href="admin-settings.html" class="dropdown-item">Paramètres</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="logout.html" class="dropdown-item">Déconnexion</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>
-    </div>
-    <!-- Navbar End -->
-
-    <!-- Header Start -->
-    <div class="container-fluid bg-primary py-5 mb-5 page-header">
-        <div class="container py-5">
-            <div class="row justify-content-center">
-                <div class="col-lg-10 text-center">
-                    <h1 class="display-3 text-white animated slideInDown">Déposer une Réclamation</h1>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb justify-content-center">
-                            <li class="breadcrumb-item"><a class="text-white" href="index.php">Accueil</a></li>
-                            <li class="breadcrumb-item text-white active" aria-current="page">Réclamations</li>
-                        </ol>
-                    </nav>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Header End -->
-
-    <!-- Formulaire de Réclamation Start -->
-    <div class="container-xxl py-5">
-        <div class="container">
-            <div class="row g-5">
-                <div class="col-lg-7 wow fadeInUp" data-wow-delay="0.1s">
-                    <?php if ($message): ?>
-                        <div class="alert alert-<?= $alert_class ?> alert-dismissible fade show mb-4">
-                            <?= $message ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <!-- Dashboard Content -->
+        <div class="dashboard-container">
+            <div class="container">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2 class="mb-0"><i class="fas fa-comment-dots me-2"></i>Réponses à la Réclamation #<?= $reclamation['id'] ?></h2>
+                            <div>
+                                <a href="admin-reclamations.php" class="btn btn-outline-secondary me-2">
+                                    <i class="fas fa-arrow-left me-1"></i> Retour
+                                </a>
+                            </div>
                         </div>
-                    <?php endif; ?>
-
-                    <div class="reclamation-form">
-                        <h2 class="mb-4">Remplissez le formulaire</h2>
-                        <p class="mb-5">Nous traiterons votre demande dans les plus brefs délais</p>
-                        
-                        <form id="reclamationForm" method="POST" novalidate>
-                            <!-- Nom Complet -->
-                            <div class="mb-4">
-                                <label for="full_name" class="form-label">Nom Complet *</label>
-                                <input type="text" class="form-control" id="full_name" name="full_name" 
-                                       value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>" required>
-                                <div class="error-message" id="full_name_error"></div>
+                        <!-- Détails de la Réclamation -->
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title">Détails de la Réclamation</h5>
+                                <p class="card-text"><strong>Nom Complet:</strong> <?= htmlspecialchars($reclamation['full_name']) ?></p>
+                                <p class="card-text"><strong>Email:</strong> <?= htmlspecialchars($reclamation['email']) ?></p>
+                                <p class="card-text"><strong>Sujet:</strong> <?= htmlspecialchars($reclamation['SUBJECT']) ?></p>
+                                <p class="card-text"><strong>Type:</strong> <?= getTypeText($reclamation['TYPE']) ?></p>
+                                <p class="card-text"><strong>Priorité:</strong> <span class="priority-<?= $reclamation['priority'] ?>"><?= getPriorityText($reclamation['priority']) ?></span></p>
+                                <p class="card-text"><strong>Date:</strong> <?= formatDate($reclamation['created_at']) ?></p>
+                                <p class="card-text"><strong>Statut:</strong> <span class="status-badge <?= getStatusClass($reclamation['STATUS']) ?>"><?= getStatusText($reclamation['STATUS']) ?></span></p>
+                                <p class="card-text"><strong>Description:</strong> <?= htmlspecialchars($reclamation['description']) ?></p>
                             </div>
-
-                            <!-- Email -->
-                            <div class="mb-4">
-                                <label for="email" class="form-label">Email *</label>
-                                <input type="email" class="form-control" id="email" name="email"
-                                       value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
-                                <div class="error-message" id="email_error"></div>
+                        </div>
+                        <!-- Liste des Réponses -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">Réponses</h5>
+                            <?php if (empty($responses)): ?>
+                                <p>Aucune réponse pour cette réclamation.</p>
+                            <?php else: ?>
+                                <?php foreach ($responses as $response): ?>
+                                    <div class="response-card">
+                                        <div class="response-author">Administrateur</div>
+                                        <div class="response-date"><?= formatDate($response['created_at']) ?></div>
+                                        <div class="response-text"><?= nl2br(htmlspecialchars($response['response'])) ?></div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                        <!-- Formulaire de Réponse -->
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">Ajouter une Réponse</h5>
+                                <form method="post" action="">
+                                    <div class="mb-3">
+                                        <label for="response" class="form-label">Votre réponse</label>
+                                        <textarea class="form-control" id="response" name="response" rows="4" required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Envoyer</button>
+                                </form>
                             </div>
-
-                            <!-- Sujet -->
-                            <div class="mb-4">
-                                <label for="subject" class="form-label">Sujet *</label>
-                                <input type="text" class="form-control" id="subject" name="subject"
-                                       value="<?= htmlspecialchars($_POST['subject'] ?? '') ?>" required>
-                                <div class="error-message" id="subject_error"></div>
-                            </div>
-
-                            <!-- Type et Priorité en ligne -->
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <label for="type" class="form-label">Type *</label>
-                                    <select class="form-select" id="type" name="type" required>
-                                        <option value="" disabled selected>Choisissez un type</option>
-                                        <option value="Technique" <?= ($_POST['type'] ?? '') === 'Technique' ? 'selected' : '' ?>>Technique</option>
-                                        <option value="Service" <?= ($_POST['type'] ?? '') === 'Service' ? 'selected' : '' ?>>Service</option>
-                                        <option value="Facturation" <?= ($_POST['type'] ?? '') === 'Facturation' ? 'selected' : '' ?>>Facturation</option>
-                                        <option value="Autre" <?= ($_POST['type'] ?? '') === 'Autre' ? 'selected' : '' ?>>Autre</option>
-                                    </select>
-                                    <div class="error-message" id="type_error"></div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="priority" class="form-label">Priorité *</label>
-                                    <select class="form-select" id="priority" name="priority" required>
-                                        <option value="" disabled selected>Choisissez une priorité</option>
-                                        <option value="Haute" <?= ($_POST['priority'] ?? '') === 'Haute' ? 'selected' : '' ?>>Haute</option>
-                                        <option value="Moyenne" <?= ($_POST['priority'] ?? '') === 'Moyenne' ? 'selected' : '' ?>>Moyenne</option>
-                                        <option value="Basse" <?= ($_POST['priority'] ?? '') === 'Basse' ? 'selected' : '' ?>>Basse</option>
-                                    </select>
-                                    <div class="error-message" id="priority_error"></div>
-                                </div>
-                            </div>
-
-                            <!-- Description -->
-                            <div class="mb-4">
-                                <label for="description" class="form-label">Description *</label>
-                                <textarea class="form-control" id="description" name="description" 
-                                          rows="5" required><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
-                                <div class="error-message" id="description_error"></div>
-                                <small class="text-muted">Minimum 20 caractères</small>
-                            </div>
-
-                            <!-- Bouton Soumettre -->
-                            <div class="text-center mt-4">
-                                <button type="submit" class="btn btn-primary py-3 px-5">
-                                    <i class="fas fa-paper-plane me-2"></i> Envoyer la Réclamation
-                                </button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
-
-               
             </div>
         </div>
     </div>
-    <!-- Formulaire de Réclamation End -->
-
     <!-- Footer Start -->
-    <div class="container-fluid bg-dark text-light footer pt-5 mt-5 wow fadeIn" data-wow-delay="0.1s">
-        <div class="container py-5">
-            <div class="row g-5">
-                <div class="col-lg-3 col-md-6">
-                    <h4 class="text-white mb-3">SkillBoost</h4>
-                    <p>Plateforme complète pour l'entrepreneuriat et l'investissement.</p>
-                    <div class="d-flex pt-2">
-                        <a class="btn btn-outline-light btn-social" href="#"><i class="fab fa-twitter"></i></a>
-                        <a class="btn btn-outline-light btn-social" href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a class="btn btn-outline-light btn-social" href="#"><i class="fab fa-youtube"></i></a>
-                        <a class="btn btn-outline-light btn-social" href="#"><i class="fab fa-linkedin-in"></i></a>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <h4 class="text-white mb-3">Liens rapides</h4>
-                    <a class="btn btn-link" href="index.php">Accueil</a>
-                    <a class="btn btn-link" href="Formations.php">Formations</a>
-                    <a class="btn btn-link" href="evenements.php">Événements</a>
-                    <a class="btn btn-link" href="reclamations.php">Réclamations</a>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <h4 class="text-white mb-3">Contact</h4>
-                    <p><i class="fa fa-map-marker-alt me-3"></i>Bloc E, Esprit, Cite La Gazelle</p>
-                    <p><i class="fa fa-phone-alt me-3"></i>+216 90 044 054</p>
-                    <p><i class="fa fa-envelope me-3"></i>SkillBoost@gmail.com</p>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <h4 class="text-white mb-3">Newsletter</h4>
-                    <p>Abonnez-vous à notre newsletter pour les dernières actualités.</p>
-                    <div class="position-relative mx-auto" style="max-width: 400px;">
-                        <input class="form-control border-0 w-100 py-3 ps-4 pe-5" type="text" placeholder="Votre email">
-                        <button type="button" class="btn btn-primary py-2 position-absolute top-0 end-0 mt-2 me-2">S'inscrire</button>
+    <div class="container-fluid bg-dark text-light mt-5 wow fadeInUp" data-wow-delay="0.1s">
+        <div class="container">
+            <div class="row gx-5">
+                <div class="col-lg-8 col-md-6">
+                    <div class="row gx-5">
+                        <div class="col-lg-4 col-md-12 pt-5 mb-5">
+                            <div class="section-title section-title-sm position-relative pb-3 mb-4">
+                                <h3 class="text-light mb-0">Contact</h3>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <i class="bi bi-geo-alt text-primary me-2"></i>
+                                <p class="mb-0">123 Rue Tunis,Tunisie, TN</p>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <i class="bi bi-envelope-open text-primary me-2"></i>
+                                <p class="mb-0">SkillBoost@gmail.com</p>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <i class="bi bi-telephone text-primary me-2"></i>
+                                <p class="mb-0">+216 90 044 054</p>
+                            </div>
+                            <div class="d-flex mt-4">
+                                <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-twitter fw-normal"></i></a>
+                                <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-facebook-f fw-normal"></i></a>
+                                <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-linkedin-in fw-normal"></i></a>
+                                <a class="btn btn-primary btn-square" href="#"><i class="fab fa-instagram fw-normal"></i></a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="container">
-            <div class="copyright">
-                <div class="row">
-                    <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                        &copy; <a class="border-bottom" href="#">SkillBoost</a>, Tous droits réservés.
-                    </div>
-                    <div class="col-md-6 text-center text-md-end">
-                        <div class="footer-menu">
-                            <a href="#">Accueil</a>
-                            <a href="#">Cookies</a>
-                            <a href="#">Aide</a>
-                            <a href="#">FAQ</a>
-                        </div>
+    </div>
+    <div class="container-fluid text-white" style="background: #061429;">
+        <div class="container text-center">
+            <div class="row justify-content-end">
+                <div class="col-lg-8 col-md-6">
+                    <div class="d-flex align-items-center justify-content-center" style="height: 75px;">
+                        <p class="mb-0">&copy; <a class="text-white border-bottom" href="#">SkillBoost</a>. All Rights Reserved.</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <!-- Footer End -->
-
     <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"><i class="bi bi-arrow-up"></i></a>
-
+    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded back-to-top"><i class="bi bi-arrow-up"></i></a>
     <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -394,110 +350,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="lib/waypoints/waypoints.min.js"></script>
     <script src="lib/counterup/counterup.min.js"></script>
     <script src="lib/owlcarousel/owl.carousel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
-
-    <!-- Script de Validation -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('reclamationForm');
-        
-        if (!form) return;
-
-        // Validation en temps réel
-        form.querySelectorAll('input, select, textarea').forEach(field => {
-            field.addEventListener('input', function() {
-                validateField(this);
-            });
-            
-            field.addEventListener('blur', function() {
-                validateField(this);
-            });
+        // Cacher le spinner
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('spinner').classList.remove('show');
         });
-
-        // Validation à la soumission
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            let isValid = true;
-            const fieldsToValidate = [
-                'full_name', 'email', 'subject', 
-                'type', 'priority', 'description'
-            ];
-            
-            fieldsToValidate.forEach(fieldId => {
-                const field = document.getElementById(fieldId);
-                if (!validateField(field)) {
-                    isValid = false;
-                }
-            });
-
-            if (isValid) {
-                // Animation avant soumission
-                const submitBtn = form.querySelector('button[type="submit"]');
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Envoi en cours...';
-                submitBtn.disabled = true;
-                
-                // Soumission après un léger délai pour l'animation
-                setTimeout(() => {
-                    form.submit();
-                }, 1000);
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Formulaire incomplet',
-                    text: 'Veuillez corriger les erreurs indiquées',
-                    confirmButtonColor: '#061429'
-                });
-                
-                // Scroll vers le premier champ invalide
-                const firstError = document.querySelector('.is-invalid');
-                if (firstError) {
-                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    firstError.focus();
-                }
-            }
-        });
-
-        function validateField(field) {
-            const errorElement = document.getElementById(`${field.id}_error`);
-            
-            // Réinitialisation
-            field.classList.remove('is-invalid', 'is-valid');
-            if (errorElement) errorElement.textContent = '';
-
-            let isValid = true;
-            let errorMessage = '';
-
-            if (field.required && !field.value.trim()) {
-                isValid = false;
-                errorMessage = 'Ce champ est obligatoire';
-            } 
-            else if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field.value)) {
-                isValid = false;
-                errorMessage = 'Veuillez entrer un email valide';
-            } 
-            else if (field.id === 'description' && field.value.trim().length < 20) {
-                isValid = false;
-                errorMessage = 'La description doit contenir au moins 20 caractères';
-            } 
-            else if ((field.id === 'type' || field.id === 'priority') && field.value === '') {
-                isValid = false;
-                errorMessage = 'Veuillez faire une sélection';
-            }
-
-            if (!isValid) {
-                field.classList.add('is-invalid');
-                if (errorElement) errorElement.textContent = errorMessage;
-            } else {
-                field.classList.add('is-valid');
-            }
-
-            return isValid;
-        }
-    });
     </script>
 </body>
 </html>
