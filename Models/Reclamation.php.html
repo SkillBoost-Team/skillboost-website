@@ -1,0 +1,40 @@
+<?php
+// On inclut le fichier de configuration de la base de données
+require_once 'config/database.php';
+
+class Reclamation {
+    private $db;
+
+    // Constructeur
+    public function __construct() {
+        // Créer une instance de la base de données
+        $this->db = (new Database())->getConnection();
+    }
+
+    // Récupérer toutes les réclamations
+    public function getAllReclamations() {
+        $sql = "SELECT * FROM reclamations"; // On prépare la requête SQL
+        $stmt = $this->db->prepare($sql); // On prépare la requête
+        $stmt->execute(); // On exécute la requête
+        return $stmt->fetchAll(PDO::FETCH_ASSOC); // Retourner tous les résultats
+    }
+
+    // Ajouter une réclamation
+    public function addReclamation($titre, $description, $utilisateur_id) {
+        // On écrit la requête SQL pour ajouter une réclamation
+        $sql = "INSERT INTO reclamations (titre, description, utilisateur_id) 
+                VALUES (:titre, :description, :utilisateur_id)";
+        
+        // On prépare la requête
+        $stmt = $this->db->prepare($sql);
+
+        // On lie les valeurs aux paramètres
+        $stmt->bindParam(':titre', $titre);
+        $stmt->bindParam(':description', $description);
+        $stmt->bindParam(':utilisateur_id', $utilisateur_id);
+
+        // Exécute la requête et retourne true si l'insertion réussit
+        return $stmt->execute();
+    }
+}
+?>

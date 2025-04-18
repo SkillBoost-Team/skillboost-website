@@ -1,0 +1,25 @@
+<?php
+class Database {
+    // Variables pour la connexion
+    private $host = 'localhost'; // Hôte de la base de données
+    private $dbname = 'skillboost'; // Nom de ta base de données
+    private $username = 'root'; // Utilisateur MySQL
+    private $password = ''; // Mot de passe MySQL
+    private $pdo; // Instance PDO
+
+    // Méthode pour obtenir une connexion PDO
+    public function getConnection() {
+        if ($this->pdo === null) {
+            try {
+                // Création de la connexion PDO
+                $dsn = "mysql:host={$this->host};dbname={$this->dbname};charset=utf8";
+                $this->pdo = new PDO($dsn, $this->username, $this->password);
+                $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); // Gérer les erreurs
+            } catch (PDOException $e) {
+                die("Erreur de connexion : " . $e->getMessage());
+            }
+        }
+        return $this->pdo; // Retourne l'instance PDO
+    }
+}
+?>

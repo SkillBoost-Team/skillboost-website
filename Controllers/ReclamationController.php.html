@@ -1,0 +1,24 @@
+<?php
+require_once '../models/Reclamation.php';
+
+class ReclamationController {
+    
+    // Ajouter une réclamation
+    public function ajouterReclamation($titre, $description) {
+        $reclamation = new Reclamation();
+        $reclamation->ajouter($titre, $description);
+    }
+
+    // Lister les réclamations
+    public function listerReclamations() {
+        $reclamation = new Reclamation();
+        return $reclamation->lister();
+    }
+
+    // Supprimer une réclamation
+    public function supprimerReclamation($id) {
+        $reclamation = new Reclamation();
+        $reclamation->supprimer($id);
+    }
+}
+?>
