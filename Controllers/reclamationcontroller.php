@@ -1,39 +1,18 @@
 <?php
-require_once __DIR__ . '/../models/ReclamationModel.php';
+require_once __DIR__ . '/../models/Reclamation.php';
 
 class ReclamationController {
-    private $model;
-
-    public function __construct() {
-        $this->model = new ReclamationModel();
+    public function showForm() {
+        require __DIR__ . '/../views/reclamations.php';
     }
 
-    public function index() {
-        $reclamations = $this->model->getAll();
-        include '../application/views/reclamations_admin.php';
-    }
-
-    public function store() {
+    public function handleSubmission() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->model->insert($_POST);
-            header('Location: index.php');
-        }
-    }
-
-    public function delete($id) {
-        $this->model->delete($id);
-        header('Location: index.php');
-    }
-
-    public function edit($id) {
-        $reclamation = $this->model->find($id);
-        include '../application/views/edit.php';
-    }
-
-    public function update() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->model->update($_POST);
-            header('Location: index.php');
+            if (Reclamation::create($_POST)) {
+                header('Location: /reclamations?success=1');
+            } else {
+                die("Erreur lors de l'enregistrement");
+            }
         }
     }
 }
