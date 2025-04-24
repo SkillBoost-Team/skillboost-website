@@ -11,48 +11,43 @@ try {
     die("Erreur de connexion : " . $e->getMessage());
 }
 
-// Récupérer l'ID de la réclamation depuis l'URL
-if (!isset($_GET['reclamation_id']) || !is_numeric($_GET['reclamation_id'])) {
+// Récupération de l'ID de la réclamation depuis l'URL
+$reclamation_id = isset($_GET['reclamation_id']) ? intval($_GET['reclamation_id']) : 0;
+
+if ($reclamation_id <= 0) {
     die("ID de réclamation invalide.");
 }
-$reclamationId = intval($_GET['reclamation_id']);
 
-// Récupérer les détails de la réclamation
+// Récupération des détails de la réclamation
 $stmt = $pdo->prepare("SELECT * FROM reclamations WHERE id = :id");
-$stmt->execute([':id' => $reclamationId]);
+$stmt->execute([':id' => $reclamation_id]);
 $reclamation = $stmt->fetch(PDO::FETCH_ASSOC);
+
 if (!$reclamation) {
-    die("Réclamation introuvable.");
+    die("Réclamation non trouvée.");
 }
 
-// Ajouter une nouvelle réponse
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['response'])) {
-        $adminId = 1; // Remplacez par l'ID de l'administrateur actuel
-        $response = htmlspecialchars($_POST['response']);
-        // Insérer la réponse dans la base de données
-        $stmt = $pdo->prepare("INSERT INTO responses (reclamation_id, admin_id, response, created_at) VALUES (:reclamation_id, :admin_id, :response, NOW())");
+// Traitement de la soumission du formulaire de réponse
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_response') {
+    $response_text = $_POST['response_text'];
+    if (!empty($response_text)) {
+        $stmt = $pdo->prepare("INSERT INTO reponses_reclamations (reclamation_id, admin_id, reponse, date_reponse) VALUES (:reclamation_id, :admin_id, :reponse, NOW())");
         $stmt->execute([
-            ':reclamation_id' => $reclamationId,
-            ':admin_id' => $adminId,
-            ':response' => $response
+            ':reclamation_id' => $reclamation_id,
+            ':admin_id' => 1, // Remplacer par l'ID de l'administrateur actuel
+            ':reponse' => $response_text
         ]);
-        // Redirection pour éviter la resoumission du formulaire
-        header("Location: reponsesreclamations.php?reclamation_id=" . $reclamationId);
+        header("Location: " . $_SERVER['PHP_SELF'] . "?reclamation_id=" . $reclamation_id);
         exit();
     }
 }
 
-// Récupérer toutes les réponses pour cette réclamation
-$stmt = $pdo->prepare("SELECT * FROM responses WHERE reclamation_id = :reclamation_id ORDER BY created_at ASC");
-$stmt->execute([':reclamation_id' => $reclamationId]);
+// Récupération des réponses pour la réclamation
+$stmt = $pdo->prepare("SELECT * FROM reponses_reclamations WHERE reclamation_id = :reclamation_id ORDER BY date_reponse ASC");
+$stmt->execute([':reclamation_id' => $reclamation_id]);
 $responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fonctions utilitaires
-function formatDate($dateString) {
-    return date('d/m/Y H:i', strtotime($dateString));
-}
-
 function getStatusClass($status) {
     $classes = [
         'new' => 'status-new',
@@ -91,7 +86,12 @@ function getPriorityText($priority) {
     ];
     return $texts[$priority] ?? $priority;
 }
+
+function formatDate($dateString) {
+    return date('d/m/Y', strtotime($dateString));
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -118,6 +118,10 @@ function getPriorityText($priority) {
     <link href="css/style.css" rel="stylesheet">
     <style>
         /* Styles personnalisés */
+        .dashboard-container {
+            padding: 2rem 0;
+            min-height: calc(100vh - 300px);
+        }
         .response-card {
             border: 1px solid #ddd;
             border-radius: 10px;
@@ -127,20 +131,17 @@ function getPriorityText($priority) {
         }
         .response-author {
             font-weight: bold;
+            margin-bottom: 0.5rem;
         }
         .response-date {
-            font-size: 0.85rem;
+            font-size: 0.875rem;
             color: #6c757d;
         }
         .response-text {
             margin-top: 0.5rem;
         }
-        .admin-notes {
-            background-color: #f8f9fa;
-            border-left: 4px solid #0d6efd;
-            padding: 0.5rem;
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
+        .response-form {
+            margin-top: 2rem;
         }
         .status-badge {
             padding: 0.35rem 0.65rem;
@@ -153,22 +154,6 @@ function getPriorityText($priority) {
         .status-resolved { background-color: #28a745; color: white; }
         .status-rejected { background-color: #dc3545; color: white; }
         .action-btn { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
-        .filter-section {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-        }
-        .table-responsive {
-            overflow-x: auto;
-        }
-        .table th {
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            background: white;
-            z-index: 10;
-        }
         .priority-high { color: #dc3545; font-weight: bold; }
         .priority-medium { color: #fd7e14; font-weight: bold; }
         .priority-low { color: #28a745; font-weight: bold; }
@@ -215,7 +200,7 @@ function getPriorityText($priority) {
                     <a href="admin-formations.html" class="nav-item nav-link">Formations</a>
                     <a href="admin-events.html" class="nav-item nav-link">Événements</a>
                     <a href="admin-investments.html" class="nav-item nav-link">Investissements</a>
-                    <a href="admin-reclamations.php" class="nav-item nav-link active">Réclamations</a>
+                    <a href="admin-reclamations.php" class="nav-item nav-link">Réclamations</a>
                     <div class="nav-item dropdown">
                         <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fa fa-user-circle me-2"></i> Admin
@@ -236,54 +221,50 @@ function getPriorityText($priority) {
                 <div class="row mb-4">
                     <div class="col-12">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2 class="mb-0"><i class="fas fa-comment-dots me-2"></i>Réponses à la Réclamation #<?= $reclamation['id'] ?></h2>
+                            <h2 class="mb-0"><i class="fas fa-comment-dots me-2"></i>Réponses à la Réclamation #<?= htmlspecialchars($reclamation['id']) ?></h2>
                             <div>
                                 <a href="admin-reclamations.php" class="btn btn-outline-secondary me-2">
-                                    <i class="fas fa-arrow-left me-1"></i> Retour
+                                    <i class="fas fa-arrow-left me-1"></i> Retour aux Réclamations
                                 </a>
                             </div>
                         </div>
                         <!-- Détails de la Réclamation -->
                         <div class="card shadow-sm mb-4">
                             <div class="card-body">
-                                <h5 class="card-title">Détails de la Réclamation</h5>
-                                <p class="card-text"><strong>Nom Complet:</strong> <?= htmlspecialchars($reclamation['full_name']) ?></p>
-                                <p class="card-text"><strong>Email:</strong> <?= htmlspecialchars($reclamation['email']) ?></p>
-                                <p class="card-text"><strong>Sujet:</strong> <?= htmlspecialchars($reclamation['SUBJECT']) ?></p>
-                                <p class="card-text"><strong>Type:</strong> <?= getTypeText($reclamation['TYPE']) ?></p>
-                                <p class="card-text"><strong>Priorité:</strong> <span class="priority-<?= $reclamation['priority'] ?>"><?= getPriorityText($reclamation['priority']) ?></span></p>
-                                <p class="card-text"><strong>Date:</strong> <?= formatDate($reclamation['created_at']) ?></p>
-                                <p class="card-text"><strong>Statut:</strong> <span class="status-badge <?= getStatusClass($reclamation['STATUS']) ?>"><?= getStatusText($reclamation['STATUS']) ?></span></p>
-                                <p class="card-text"><strong>Description:</strong> <?= htmlspecialchars($reclamation['description']) ?></p>
+                                <h5>Détails de la Réclamation</h5>
+                                <hr>
+                                <p><strong>Nom Complet:</strong> <?= htmlspecialchars($reclamation['full_name']) ?></p>
+                                <p><strong>Email:</strong> <?= htmlspecialchars($reclamation['email']) ?></p>
+                                <p><strong>Sujet:</strong> <?= htmlspecialchars($reclamation['SUBJECT']) ?></p>
+                                <p><strong>Type:</strong> <?= getTypeText($reclamation['TYPE']) ?></p>
+                                <p><strong>Priorité:</strong> <span class="priority-<?= $reclamation['priority'] ?>"><?= getPriorityText($reclamation['priority']) ?></span></p>
+                                <p><strong>Date de Création:</strong> <?= formatDate($reclamation['created_at']) ?></p>
+                                <p><strong>Description:</strong> <?= nl2br(htmlspecialchars($reclamation['description'])) ?></p>
+                                <p><strong>Statut:</strong> <span class="status-badge <?= getStatusClass($reclamation['STATUS']) ?>"><?= getStatusText($reclamation['STATUS']) ?></span></p>
                             </div>
                         </div>
-                        <!-- Liste des Réponses -->
-                        <div class="mb-4">
-                            <h5 class="mb-3">Réponses</h5>
-                            <?php if (empty($responses)): ?>
-                                <p>Aucune réponse pour cette réclamation.</p>
-                            <?php else: ?>
+                        <!-- Réponses -->
+                        <div class="response-form">
+                            <h5>Ajouter une Réponse</h5>
+                            <hr>
+                            <form method="post" action="">
+                                <input type="hidden" name="action" value="add_response">
+                                <textarea class="form-control mb-3" name="response_text" rows="4" placeholder="Entrez votre réponse ici..." required></textarea>
+                                <button type="submit" class="btn btn-primary">Envoyer la Réponse</button>
+                            </form>
+                        </div>
+                        <div class="mt-4">
+                            <?php if (count($responses) > 0): ?>
                                 <?php foreach ($responses as $response): ?>
                                     <div class="response-card">
-                                        <div class="response-author">Administrateur</div>
-                                        <div class="response-date"><?= formatDate($response['created_at']) ?></div>
-                                        <div class="response-text"><?= nl2br(htmlspecialchars($response['response'])) ?></div>
+                                        <div class="response-author">Admin #<?= htmlspecialchars($response['admin_id']) ?></div>
+                                        <div class="response-date"><?= formatDate($response['date_reponse']) ?></div>
+                                        <div class="response-text"><?= nl2br(htmlspecialchars($response['reponse'])) ?></div>
                                     </div>
                                 <?php endforeach; ?>
+                            <?php else: ?>
+                                <p>Aucune réponse n'a encore été ajoutée pour cette réclamation.</p>
                             <?php endif; ?>
-                        </div>
-                        <!-- Formulaire de Réponse -->
-                        <div class="card shadow-sm">
-                            <div class="card-body">
-                                <h5 class="card-title">Ajouter une Réponse</h5>
-                                <form method="post" action="">
-                                    <div class="mb-3">
-                                        <label for="response" class="form-label">Votre réponse</label>
-                                        <textarea class="form-control" id="response" name="response" rows="4" required></textarea>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Envoyer</button>
-                                </form>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -349,7 +330,7 @@ function getPriorityText($priority) {
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
     <script>
-        // Cacher le spinner
+        // Gestion du spinner
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('spinner').classList.remove('show');
         });
