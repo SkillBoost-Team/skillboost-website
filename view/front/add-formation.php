@@ -1,0 +1,304 @@
+<?php
+// Include the configuration file to connect to the database
+require_once '../../config/config.php';
+
+// Include the add-formationFrontModel to interact with the database
+require_once '../../model/add-formationFrontModel.php';
+
+// Create an instance of the add-formationFrontModel
+$model = new AddFormationFrontModel($pdo);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $titre = $_POST['titre'];
+    $description = $_POST['description'];
+    $duree = $_POST['duree'];
+    $niveau = $_POST['niveau'];
+    $certificat = isset($_POST['certificat']) ? $_POST['certificat'] : 'Non';
+
+    // Add the new formation to the database
+    $formationId = $model->addFormation($titre, $description, $duree, $niveau, $certificat);
+
+    // Add the quiz questions to the database
+    $question1 = $_POST['question1'];
+    $answer1 = isset($_POST['answer1']);
+    $question2 = $_POST['question2'];
+    $answer2 = isset($_POST['answer2']);
+    $question3 = $_POST['question3'];
+    $answer3 = isset($_POST['answer3']);
+
+    $model->addQuiz($formationId, $question1, $answer1, $question2, $answer2, $question3, $answer3);
+
+    // Redirect to the formations page
+    header('Location: formations.php');
+    exit();
+}
+?>
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>SkillBoost - Ajouter une Formation</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Free HTML Templates" name="keywords">
+    <meta content="Free HTML Templates" name="description">
+    <!-- Favicon -->
+    <link href="img/favicon.ico" rel="icon">
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icon Font Stylesheet -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Libraries Stylesheet -->
+    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+    <link href="lib/animate/animate.min.css" rel="stylesheet">
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <!-- Template Stylesheet -->
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        /* Styles personnalisés */
+        .quiz-container {
+            padding: 2rem 0;
+            min-height: calc(100vh - 300px);
+        }
+        .quiz-form {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .quiz-form h3 {
+            margin-bottom: 1rem;
+        }
+        .quiz-form .form-check {
+            margin-bottom: 0.5rem;
+        }
+        .action-btn { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+    <!-- Spinner Start -->
+    <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+        <div class="spinner"></div>
+    </div>
+    <!-- Spinner End -->
+    <!-- Navbar Start -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white navbar-sticky py-3 py-lg-0 px-4 px-lg-5">
+        <a href="index.html" class="navbar-brand p-0">
+            <h1 class="m-0"><i class="fa fa-user-tie me-2"></i>SkillBoost</h1>
+        </a>
+        <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+            <span class="fa fa-bars"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+            <div class="navbar-nav ms-auto py-0">
+                <a href="index.html" class="nav-item nav-link">Accueil</a>
+                <a href="about.html" class="nav-item nav-link">À propos</a>
+                <a href="services.html" class="nav-item nav-link">Services</a>
+                <a href="projects.html" class="nav-item nav-link">Projets</a>
+                <a href="formations.php" class="nav-item nav-link active">Formations</a>
+                <a href="events.html" class="nav-item nav-link">Événements</a>
+                <a href="contact.html" class="nav-item nav-link">Contact</a>
+            </div>
+        </div>
+    </nav>
+    <!-- Navbar End -->
+    <!-- Page Header Start -->
+    <div class="container-fluid page-header py-5 mb-5 wow fadeIn" data-wow-delay="0.1s">
+        <div class="container text-center py-5">
+            <h1 class="display-3 text-white mb-4 animated slideInDown">Ajouter une Formation</h1>
+            <nav aria-label="breadcrumb animated slideInDown">
+                <ol class="breadcrumb justify-content-center mb-0">
+                    <li class="breadcrumb-item"><a href="index.html">Accueil</a></li>
+                    <li class="breadcrumb-item"><a href="formations.php">Formations</a></li>
+                    <li class="breadcrumb-item text-white active" aria-current="page">Ajouter</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    <!-- Page Header End -->
+    <!-- Add Formation Form Start -->
+    <div class="container-xxl py-5">
+        <div class="container">
+            <div class="row g-5">
+                <div class="col-lg-8">
+                    <div class="bg-light rounded p-5">
+                        <div class="section-title section-title-sm position-relative pb-3 mb-4">
+                            <h3 class="mb-0">Ajouter une Formation</h3>
+                        </div>
+                        <form method="POST" action="">
+                            <div class="row g-3">
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label">Titre *</label>
+                                    <input type="text" class="form-control bg-white border-0" name="titre" placeholder="Titre de la formation" style="height: 55px;" required>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label">Niveau *</label>
+                                    <select class="form-select bg-white border-0" name="niveau" style="height: 55px;" required>
+                                        <option value="Débutant">Débutant</option>
+                                        <option value="Intermédiaire">Intermédiaire</option>
+                                        <option value="Avancé">Avancé</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Description *</label>
+                                    <textarea class="form-control bg-white border-0" name="description" rows="5" placeholder="Description de la formation" required></textarea>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label">Durée (heures) *</label>
+                                    <input type="number" class="form-control bg-white border-0" name="duree" placeholder="Durée en heures" style="height: 55px;" required>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label">Certificat</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="certificat" id="certificatOui" value="Oui" required>
+                                        <label class="form-check-label" for="certificatOui">
+                                            Oui
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="certificat" id="certificatNon" value="Non" required>
+                                        <label class="form-check-label" for="certificatNon">
+                                            Non
+                                        </label>
+                                    </div>
+                                </div>
+                                <!-- Quiz Section -->
+                                <div class="col-12 quiz-section">
+                                    <div class="section-title section-title-sm position-relative pb-3 mb-4">
+                                        <h3 class="mb-0">Quiz</h3>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Question 1 *</label>
+                                        <input type="text" class="form-control bg-white border-0" name="question1" placeholder="Question 1" style="height: 55px;" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Réponse 1</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="answer1" id="answer1">
+                                            <label class="form-check-label" for="answer1">
+                                                Vrai
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Question 2 *</label>
+                                        <input type="text" class="form-control bg-white border-0" name="question2" placeholder="Question 2" style="height: 55px;" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Réponse 2</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="answer2" id="answer2">
+                                            <label class="form-check-label" for="answer2">
+                                                Vrai
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Question 3 *</label>
+                                        <input type="text" class="form-control bg-white border-0" name="question3" placeholder="Question 3" style="height: 55px;" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Réponse 3</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="answer3" id="answer3">
+                                            <label class="form-check-label" for="answer3">
+                                                Vrai
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-primary w-100 py-3" type="submit">Ajouter la Formation</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <!-- Sidebar Widgets -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header py-3">
+                            <h5 class="m-0">Informations supplémentaires</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Assurez-vous que toutes les informations sont correctes avant d'ajouter la formation.</p>
+                            <p>Les formations peuvent être consultées par tous les utilisateurs du site.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Add Formation Form End -->
+    <!-- Footer Start -->
+    <div class="container-fluid bg-dark text-light mt-5 wow fadeInUp" data-wow-delay="0.1s">
+        <div class="container">
+            <div class="row gx-5">
+                <div class="col-lg-8 col-md-6">
+                    <div class="row gx-5">
+                        <div class="col-lg-4 col-md-12 pt-5 mb-5">
+                            <div class="section-title section-title-sm position-relative pb-3 mb-4">
+                                <h3 class="text-light mb-0">Contact</h3>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <i class="bi bi-geo-alt text-primary me-2"></i>
+                                <p class="mb-0">123 Rue Tunis,Tunisie, TN</p>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <i class="bi bi-envelope-open text-primary me-2"></i>
+                                <p class="mb-0">SkillBoost@gmail.com</p>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <i class="bi bi-telephone text-primary me-2"></i>
+                                <p class="mb-0">+216 90 044 054</p>
+                            </div>
+                            <div class="d-flex mt-4">
+                                <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-twitter fw-normal"></i></a>
+                                <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-facebook-f fw-normal"></i></a>
+                                <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-linkedin-in fw-normal"></i></a>
+                                <a class="btn btn-primary btn-square" href="#"><i class="fab fa-instagram fw-normal"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid text-white" style="background: #061429;">
+        <div class="container text-center">
+            <div class="row justify-content-end">
+                <div class="col-lg-8 col-md-6">
+                    <div class="d-flex align-items-center justify-content-center" style="height: 75px;">
+                        <p class="mb-0">&copy; <a class="text-white border-bottom" href="#">SkillBoost</a>. All Rights Reserved.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Footer End -->
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded back-to-top"><i class="bi bi-arrow-up"></i></a>
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/wow/wow.min.js"></script>
+    <script src="lib/easing/easing.min.js"></script>
+    <script src="lib/waypoints/waypoints.min.js"></script>
+    <script src="lib/counterup/counterup.min.js"></script>
+    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
+    <!-- Template Javascript -->
+    <script src="js/main.js"></script>
+    <script>
+        // Simuler un délai de chargement pour le spinner
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                document.getElementById('spinner').classList.remove('show');
+            }, 500);
+        });
+    </script>
+</body>
+</html>
