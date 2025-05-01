@@ -3,7 +3,6 @@ require_once '../../controller/reservationcontroller.php';
 require_once '../../model/reservation.php';
 $controller = new ReservationController();
 $message = '';
-$reservations = $controller->listReservations();
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Vérification des champs
     $idevenement = intval(trim($_POST['idevenement']));
@@ -14,7 +13,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $methode_paiement = trim($_POST['methode_paiement']);
     $montant_paye = floatval(trim($_POST['montant_paye']));
     $id_reservation = intval(trim($_POST['id_reservation']));
-
     if (
         $idevenement > 0 &&
         $id_utilisateur > 0 &&
@@ -31,7 +29,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         );
         if ($controller->addReservation($reservation)) {
             $message = "✅ Réservation ajoutée avec succès !";
-            $reservations = $controller->listReservations(); // Rafraîchir la liste
         } else {
             $message = "❌ Erreur lors de l'ajout de la réservation.";
         }
@@ -143,23 +140,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             font-size: 12px; 
             margin-top: 5px; 
         }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 30px 0;
-        }
-        th, td { 
-            border: 1px solid #ccc; 
-            padding: 12px; 
-            text-align: center; 
-        }
-        th { 
-            background-color: #f2f2f2; 
-            font-weight: bold;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
         /* Footer styles */
         .footer {
             background-color: #1a2a3a;
@@ -197,6 +177,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             text-align: center;
             padding: 15px 0;
             font-size: 14px;
+        }
+        /* Consult button styles */
+        .consult-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .consult-button:hover {
+            background-color: #3e8e41;
         }
     </style>
 </head>
@@ -270,40 +265,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <div id="id_reservation-error" class="error-message"></div>
         <input type="submit" value="Ajouter la réservation">
     </form>
-    <!-- Liste des réservations -->
-    <h2>Liste des réservations</h2>
-    <?php if (!empty($reservations)): ?>
-        <table>
-            <thead>
-            <tr>
-                <th>ID Événement</th>
-                <th>ID Utilisateur</th>
-                <th>Date Inscription</th>
-                <th>Nombre Places</th>
-                <th>Statut Inscription</th>
-                <th>Méthode Paiement</th>
-                <th>Montant Payé</th>
-                <th>ID Réservation</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($reservations as $reservation): ?>
-                <tr>
-                    <td><?= htmlspecialchars($reservation['idevenement']) ?></td>
-                    <td><?= htmlspecialchars($reservation['id_utilisateur']) ?></td>
-                    <td><?= htmlspecialchars($reservation['date_inscription']) ?></td>
-                    <td><?= htmlspecialchars($reservation['nombre_places']) ?></td>
-                    <td><?= htmlspecialchars($reservation['statut_inscription']) ?></td>
-                    <td><?= htmlspecialchars($reservation['methode_paiement']) ?></td>
-                    <td><?= htmlspecialchars($reservation['montant_paye']) ?></td>
-                    <td><?= htmlspecialchars($reservation['id_reservation']) ?></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php else: ?>
-        <p>Aucune réservation pour le moment.</p>
-    <?php endif; ?>
+    <!-- Bouton Consulter -->
+    <a href="affichage_reservation.php" class="consult-button">
+        <i class="fas fa-eye"></i> Consulter les réservations
+    </a>
 </div>
 <!-- Footer -->
 <footer class="footer">
@@ -330,7 +295,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         let montant_paye = document.getElementById("montant_paye");
         let id_reservation = document.getElementById("id_reservation");
         let valid = true;
-
         // Reset des messages d'erreur
         document.getElementById("idevenement-error").innerText = "";
         document.getElementById("id_utilisateur-error").innerText = "";
@@ -340,7 +304,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         document.getElementById("methode_paiement-error").innerText = "";
         document.getElementById("montant_paye-error").innerText = "";
         document.getElementById("id_reservation-error").innerText = "";
-
         // Vérif ID de l'événement : entier positif
         if (idevenement.value.trim() === "" || idevenement.value <= 0) {
             document.getElementById("idevenement-error").innerText = "L'ID de l'événement doit être un entier positif.";
@@ -349,7 +312,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             idevenement.classList.remove("error-border");
         }
-
         // Vérif ID de l'utilisateur : entier positif
         if (id_utilisateur.value.trim() === "" || id_utilisateur.value <= 0) {
             document.getElementById("id_utilisateur-error").innerText = "L'ID de l'utilisateur doit être un entier positif.";
@@ -358,7 +320,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             id_utilisateur.classList.remove("error-border");
         }
-
         // Vérif Date d'inscription : non vide
         if (date_inscription.value.trim() === "") {
             document.getElementById("date_inscription-error").innerText = "La date d'inscription est obligatoire.";
@@ -367,7 +328,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             date_inscription.classList.remove("error-border");
         }
-
         // Vérif Nombre de places : entier positif
         if (nombre_places.value.trim() === "" || nombre_places.value <= 0) {
             document.getElementById("nombre_places-error").innerText = "Le nombre de places doit être un entier positif.";
@@ -376,7 +336,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             nombre_places.classList.remove("error-border");
         }
-
         // Vérif Statut d'inscription : non vide
         if (statut_inscription.value.trim() === "") {
             document.getElementById("statut_inscription-error").innerText = "Le statut d'inscription est obligatoire.";
@@ -385,7 +344,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             statut_inscription.classList.remove("error-border");
         }
-
         // Vérif Méthode de paiement : non vide
         if (methode_paiement.value.trim() === "") {
             document.getElementById("methode_paiement-error").innerText = "La méthode de paiement est obligatoire.";
@@ -394,7 +352,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             methode_paiement.classList.remove("error-border");
         }
-
         // Vérif Montant payé : non négatif
         if (montant_paye.value.trim() === "" || montant_paye.value < 0) {
             document.getElementById("montant_paye-error").innerText = "Le montant payé ne peut pas être négatif.";
@@ -403,7 +360,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             montant_paye.classList.remove("error-border");
         }
-
         // Vérif ID de la réservation : entier positif
         if (id_reservation.value.trim() === "" || id_reservation.value <= 0) {
             document.getElementById("id_reservation-error").innerText = "L'ID de la réservation doit être un entier positif.";
@@ -412,7 +368,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             id_reservation.classList.remove("error-border");
         }
-
         return valid;
     }
 </script>

@@ -1,20 +1,15 @@
 <?php
-
 require_once '../../controller/eventController.php'; // <-- le contrôleur d'événements
-
 $eventController = new EvenementController();
 $list = $eventController->listEvenements();
-
 // Définir les variables de comptage
 $nouvelles = 0;
 $encours = 0;
 $resolues = 0;
 $urgentes = 0;
-
 // Vérifier si $list contient des événements
 if (isset($list) && is_array($list)) {
     $evenements = $list;  // Assigner la liste d'événements si elle est valide
-
     foreach ($evenements as $e) {
         if ($e['statut'] == 'Nouveau') $nouvelles++;
         elseif ($e['statut'] == 'En cours') $encours++;
@@ -24,41 +19,31 @@ if (isset($list) && is_array($list)) {
 } else {
     $evenements = [];  // Si $list est vide ou invalide, on initialise $evenements comme un tableau vide
 }
-
 ?>
-
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="utf-8">
     <title>SkillBoost - Admin Événements</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="Free HTML Templates" name="keywords">
     <meta content="Free HTML Templates" name="description">
-
     <!-- Favicon -->
     <link href="img/favicon.ico" rel="icon">
-
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <!-- Icon Font Stylesheet -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
-
     <!-- Libraries Stylesheet -->
     <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
     <link href="lib/animate/animate.min.css" rel="stylesheet">
-
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
-
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
-    
     <style>
         /* Styles personnalisés */
         .dashboard-container {
@@ -97,17 +82,27 @@ if (isset($list) && is_array($list)) {
             top: 0;
             background: white;
             z-index: 10;
+            cursor: pointer;
+        }
+        .table th.sort-asc::after {
+            content: ' ▲';
+            color: #0dcaf0;
+        }
+        .table th.sort-desc::after {
+            content: ' ▼';
+            color: #0dcaf0;
+        }
+        .table th.sortable {
+            color: #0dcaf0;
         }
     </style>
 </head>
-
 <body>
     <!-- Spinner Start -->
     <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
         <div class="spinner"></div>
     </div>
     <!-- Spinner End -->
-
     <!-- Topbar Start -->
     <div class="container-fluid bg-dark px-5 d-none d-lg-block">
         <div class="row gx-0">
@@ -126,7 +121,6 @@ if (isset($list) && is_array($list)) {
         </div>
     </div>
     <!-- Topbar End -->
-
     <!-- Navbar & Carousel Start -->
     <div class="container-fluid position-relative p-0">
         <nav class="navbar navbar-expand-lg navbar-dark px-5 py-3 py-lg-0">
@@ -159,34 +153,6 @@ if (isset($list) && is_array($list)) {
                 </div>
             </div>
         </nav>
-
-        <?php
-        require_once '../../controller/eventController.php';
-
-        $eventController = new EvenementController();
-        $list = $eventController->listEvenements();
-
-        // Définir les variables de comptage
-        $nouvelles = 0;
-        $encours = 0;
-        $resolues = 0;
-        $urgentes = 0;
-
-        // Vérifier si $list contient des événements
-        if (isset($list) && is_array($list)) {
-            $evenements = $list;  // Assigner la liste d'événements si elle est valide
-
-            foreach ($evenements as $e) {
-                if ($e['statut'] == 'Nouveau') $nouvelles++;
-                elseif ($e['statut'] == 'En cours') $encours++;
-                elseif ($e['statut'] == 'Résolu') $resolues++;
-                if ($e['type_evenement'] == 'Urgent') $urgentes++;
-            }
-        } else {
-            $evenements = [];  // Si $list est vide ou invalide, on initialise $evenements comme un tableau vide
-        }
-        ?>
-
         <!-- Dashboard Content -->
         <div class="dashboard-container">
             <div class="container">
@@ -200,7 +166,6 @@ if (isset($list) && is_array($list)) {
                                 </a>
                             </div>
                         </div>
-
                         <!-- Cartes Statistiques -->
                         <div class="row mb-4">
                             <div class="col-md-3">
@@ -248,53 +213,51 @@ if (isset($list) && is_array($list)) {
                                 </div>
                             </div>
                         </div>
-
                         <!-- Filtres -->
                         <div class="filter-section mb-4">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Statut</label>
-                                    <select class="form-select">
-                                        <option>Tous les statuts</option>
-                                        <option>Nouveau</option>
-                                        <option>En cours</option>
-                                        <option>Résolu</option>
-                                    </select>
+                            <form id="filterForm" method="GET" action="">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Statut</label>
+                                        <select class="form-select" name="statut" id="filter-statut">
+                                            <option value="">Tous les statuts</option>
+                                            <option value="Nouveau" <?= isset($_GET['statut']) && $_GET['statut'] == 'Nouveau' ? 'selected' : '' ?>>Nouveau</option>
+                                            <option value="En cours" <?= isset($_GET['statut']) && $_GET['statut'] == 'En cours' ? 'selected' : '' ?>>En cours</option>
+                                            <option value="Résolu" <?= isset($_GET['statut']) && $_GET['statut'] == 'Résolu' ? 'selected' : '' ?>>Résolu</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Type</label>
+                                        <select class="form-select" name="type" id="filter-type">
+                                            <option value="">Tous les types</option>
+                                            <option value="Formation" <?= isset($_GET['type']) && $_GET['type'] == 'Formation' ? 'selected' : '' ?>>Formation</option>
+                                            <option value="Réunion" <?= isset($_GET['type']) && $_GET['type'] == 'Réunion' ? 'selected' : '' ?>>Réunion</option>
+                                            <option value="Urgent" <?= isset($_GET['type']) && $_GET['type'] == 'Urgent' ? 'selected' : '' ?>>Urgent</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Recherche</label>
+                                        <input type="text" class="form-control" name="search" id="search-input" value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>" placeholder="Rechercher...">
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Type</label>
-                                    <select class="form-select">
-                                        <option>Tous les types</option>
-                                        <option>Formation</option>
-                                        <option>Réunion</option>
-                                        <option>Urgent</option>
-                                    </select>
+                                <div class="d-flex justify-content-end mt-3">
+                                    <button type="submit" class="btn btn-secondary">Rechercher</button>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Date</label>
-                                    <select class="form-select">
-                                        <option>Toutes les dates</option>
-                                        <option>Aujourd'hui</option>
-                                        <option>Cette semaine</option>
-                                        <option>Ce mois</option>
-                                    </select>
-                                </div>
-                            </div>
+                            </form>
                         </div>
-
                         <!-- Tableau des événements -->
                         <div class="card shadow-sm">
                             <div class="card-body">
                                 <div class="table-responsive">
-                                    <table class="table table-hover">
+                                    <table class="table table-hover" id="eventTable">
                                         <thead class="table-light">
                                             <tr>
-                                                <th>ID</th>
-                                                <th>Titre</th>
-                                                <th>Type</th>
-                                                <th>Lieu / Lien</th>
-                                                <th>Date</th>
-                                                <th>Statut</th>
+                                                <th class="sortable" data-sort="idevenement">ID</th>
+                                                <th class="sortable" data-sort="titre">Titre</th>
+                                                <th class="sortable" data-sort="type_evenement">Type</th>
+                                                <th class="sortable" data-sort="lieu_ou_lien">Lieu / Lien</th>
+                                                <th class="sortable" data-sort="date_evenement">Date</th>
+                                                <th class="sortable" data-sort="statut">Statut</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
@@ -335,7 +298,6 @@ if (isset($list) && is_array($list)) {
             </div>
         </div>
     </div>
-
     <!-- Footer Start -->
     <div class="container-fluid bg-dark text-light mt-5 wow fadeInUp" data-wow-delay="0.1s">
         <div class="container">
@@ -382,10 +344,8 @@ if (isset($list) && is_array($list)) {
         </div>
     </div>
     <!-- Footer End -->
-
     <!-- Back to Top -->
     <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded back-to-top"><i class="bi bi-arrow-up"></i></a>
-
     <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -394,16 +354,94 @@ if (isset($list) && is_array($list)) {
     <script src="lib/waypoints/waypoints.min.js"></script>
     <script src="lib/counterup/counterup.min.js"></script>
     <script src="lib/owlcarousel/owl.carousel.min.js"></script>
-
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
-
     <script>
         // Initialisation du spinner
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 document.getElementById('spinner').classList.remove('show');
             }, 500);
+        });
+
+        // Fonction pour appliquer les filtres et la recherche
+        function applyFilters() {
+            const filterStatut = document.getElementById('filter-statut').value.toLowerCase();
+            const filterType = document.getElementById('filter-type').value.toLowerCase();
+            const searchInput = document.getElementById('search-input').value.toLowerCase();
+            const tableRows = document.querySelectorAll('#eventTable tbody tr');
+
+            tableRows.forEach(row => {
+                const statutCell = row.querySelector('td:nth-child(6)').textContent.toLowerCase();
+                const typeCell = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                const titreCell = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+
+                const matchesStatut = !filterStatut || statutCell.includes(filterStatut);
+                const matchesType = !filterType || typeCell.includes(filterType);
+                const matchesSearch = titreCell.includes(searchInput);
+
+                if (matchesStatut && matchesType && matchesSearch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Ajout des écouteurs d'événements pour les filtres et la recherche
+        document.getElementById('filter-statut').addEventListener('change', applyFilters);
+        document.getElementById('filter-type').addEventListener('change', applyFilters);
+        document.getElementById('search-input').addEventListener('keyup', applyFilters);
+
+        // Fonctions de tri
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = document.getElementById('eventTable');
+            const headers = table.querySelectorAll('th.sortable');
+            const tableBody = table.querySelector('tbody');
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+            let sortOrder = {};
+
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const sortKey = header.getAttribute('data-sort');
+                    const currentSortOrder = sortOrder[sortKey] || 'asc';
+
+                    // Réinitialiser les classes de tri
+                    headers.forEach(th => {
+                        th.classList.remove('sort-asc', 'sort-desc');
+                    });
+
+                    // Définir la nouvelle classe de tri
+                    if (currentSortOrder === 'asc') {
+                        header.classList.add('sort-desc');
+                        sortOrder[sortKey] = 'desc';
+                    } else {
+                        header.classList.add('sort-asc');
+                        sortOrder[sortKey] = 'asc';
+                    }
+
+                    // Tri des lignes
+                    rows.sort((rowA, rowB) => {
+                        const cellA = rowA.querySelector(`td:nth-child(${header.cellIndex + 1})`).innerText.trim();
+                        const cellB = rowB.querySelector(`td:nth-child(${header.cellIndex + 1})`).innerText.trim();
+
+                        switch (sortKey) {
+                            case 'idevenement':
+                                return currentSortOrder === 'asc' ? cellA - cellB : cellB - cellA;
+                            case 'date_evenement':
+                                return currentSortOrder === 'asc' ? new Date(cellA) - new Date(cellB) : new Date(cellB) - new Date(cellA);
+                            default:
+                                return currentSortOrder === 'asc' ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+                        }
+                    });
+
+                    // Ajout des lignes triées dans le tbody
+                    rows.forEach(row => tableBody.appendChild(row));
+
+                    // Appliquer les filtres après le tri
+                    applyFilters();
+                });
+            });
         });
     </script>
 </body>

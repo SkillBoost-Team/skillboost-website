@@ -4,18 +4,15 @@ require_once '../../model/reservation.php';
 
 $controller = new ReservationController();
 $list = $controller->listReservations();
-
 // Filtrer les réservations selon les critères de recherche
 $statut_inscription = isset($_GET['statut_inscription']) ? $_GET['statut_inscription'] : '';
 $methode_paiement = isset($_GET['methode_paiement']) ? $_GET['methode_paiement'] : '';
 $date_inscription = isset($_GET['date_inscription']) ? $_GET['date_inscription'] : '';
-
 if (isset($list) && is_array($list)) {
     $reservations = $list;  // Assigner la liste de réservations si elle est valide
 } else {
     $reservations = [];  // Si $list est vide ou invalide, on initialise $reservations comme un tableau vide
 }
-
 // Appliquer les filtres
 if (!empty($statut_inscription) || !empty($methode_paiement) || !empty($date_inscription)) {
     $filteredReservations = [];
@@ -30,13 +27,11 @@ if (!empty($statut_inscription) || !empty($methode_paiement) || !empty($date_ins
     }
     $reservations = $filteredReservations;
 }
-
 // Définir les variables de comptage
 $en_attente = 0;
 $payer = 0;
 $annulee = 0;
 $total_reservations = 0;
-
 foreach ($reservations as $r) {
     if ($r['statut_inscription'] == 'en attente') $en_attente++;
     elseif ($r['statut_inscription'] == 'payée') $payer++;
@@ -117,6 +112,19 @@ foreach ($reservations as $r) {
         }
         .table th.sortable {
             color: #0dcaf0;
+        }
+        .confirm-payment-btn {
+            background-color: #0dcaf0;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .confirm-payment-btn:hover {
+            background-color: #0badd5;
         }
     </style>
 </head>
@@ -248,7 +256,6 @@ foreach ($reservations as $r) {
                                             <option value="payée" <?= $statut_inscription == 'payée' ? 'selected' : '' ?>>Payée</option>
                                             <option value="annulée" <?= $statut_inscription == 'annulée' ? 'selected' : '' ?>>Annulée</option>
                                         </select>
-                                        <div class="field-error" id="statut_inscription-error"></div>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label">Méthode de paiement</label>
@@ -258,12 +265,10 @@ foreach ($reservations as $r) {
                                             <option value="virement bancaire" <?= $methode_paiement == 'virement bancaire' ? 'selected' : '' ?>>Virement bancaire</option>
                                             <option value="paypal" <?= $methode_paiement == 'paypal' ? 'selected' : '' ?>>PayPal</option>
                                         </select>
-                                        <div class="field-error" id="methode_paiement-error"></div>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label">Date d'inscription</label>
                                         <input type="date" class="form-control" name="date_inscription" id="date_inscription" value="<?= htmlspecialchars($date_inscription) ?>">
-                                        <div class="field-error" id="date_inscription-error"></div>
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-end mt-3">
@@ -315,6 +320,9 @@ foreach ($reservations as $r) {
                                                         <a href="voir_reservation.php?id=<?= isset($r['id_reservation']) ? $r['id_reservation'] : '' ?>" class="btn btn-sm btn-info action-btn">👁️</a>
                                                         <a href="update_reservation.php?id=<?= isset($r['id_reservation']) ? $r['id_reservation'] : '' ?>" class="btn btn-sm btn-warning action-btn">✏️</a>
                                                         <a href="delate_reservation.php?id=<?= isset($r['id_reservation']) ? $r['id_reservation'] : '' ?>" class="btn btn-sm btn-danger action-btn" onclick="return confirm('Supprimer cette réservation ?')">🗑️</a>
+                                                        <?php if ($statut_inscription == 'en attente'): ?>
+                                                            <a href="https://fr.flouci.com/" class="btn btn-sm confirm-payment-btn" target="_blank">Confirmer le paiement</a>
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach ?>
@@ -393,77 +401,21 @@ foreach ($reservations as $r) {
                 document.getElementById('spinner').classList.remove('show');
             }, 500);
         });
-
-        // Validation en temps réel pour les filtres
-        document.getElementById('statut_inscription').addEventListener('change', validateFilters);
-        document.getElementById('methode_paiement').addEventListener('change', validateFilters);
-        document.getElementById('date_inscription').addEventListener('change', validateFilters);
-
-        function validateFilters() {
-            const statut_inscription = document.getElementById('statut_inscription');
-            const methode_paiement = document.getElementById('methode_paiement');
-            const date_inscription = document.getElementById('date_inscription');
-
-            // Réinitialiser les messages d'erreur
-            document.getElementById('statut_inscription-error').innerText = '';
-            document.getElementById('methode_paiement-error').innerText = '';
-            document.getElementById('date_inscription-error').innerText = '';
-
-            let valid = true;
-
-            // Vérif Statut d'inscription : non vide
-            if (statut_inscription.value === '') {
-                showError(statut_inscription, 'statut_inscription-error', 'Le statut d\'inscription est obligatoire.');
-                valid = false;
-            } else {
-                hideError(statut_inscription, 'statut_inscription-error');
-            }
-
-            // Vérif Méthode de paiement : non vide
-            if (methode_paiement.value === '') {
-                showError(methode_paiement, 'methode_paiement-error', 'La méthode de paiement est obligatoire.');
-                valid = false;
-            } else {
-                hideError(methode_paiement, 'methode_paiement-error');
-            }
-
-            // Vérif Date d'inscription : non vide
-            if (date_inscription.value === '') {
-                showError(date_inscription, 'date_inscription-error', 'La date d\'inscription est obligatoire.');
-                valid = false;
-            } else {
-                hideError(date_inscription, 'date_inscription-error');
-            }
-
-            return valid;
-        }
-
-        // Soumission du formulaire de filtre
-        document.getElementById('filterForm').addEventListener('submit', function(e) {
-            if (!validateFilters()) {
-                e.preventDefault();
-            }
-        });
-
         // Fonctions de tri
         document.addEventListener('DOMContentLoaded', function() {
             const table = document.getElementById('reservationTable');
             const headers = table.querySelectorAll('th.sortable');
             const tableBody = table.querySelector('tbody');
             const rows = Array.from(tableBody.querySelectorAll('tr'));
-
             let sortOrder = {};
-
             headers.forEach(header => {
                 header.addEventListener('click', () => {
                     const sortKey = header.getAttribute('data-sort');
                     const currentSortOrder = sortOrder[sortKey] || 'asc';
-
                     // Réinitialiser les classes de tri
                     headers.forEach(th => {
                         th.classList.remove('sort-asc', 'sort-desc');
                     });
-
                     // Définir la nouvelle classe de tri
                     if (currentSortOrder === 'asc') {
                         header.classList.add('sort-desc');
@@ -472,12 +424,10 @@ foreach ($reservations as $r) {
                         header.classList.add('sort-asc');
                         sortOrder[sortKey] = 'asc';
                     }
-
                     // Tri des lignes
                     rows.sort((rowA, rowB) => {
                         const cellA = rowA.querySelector(`td:nth-child(${header.cellIndex + 1})`).innerText.trim();
                         const cellB = rowB.querySelector(`td:nth-child(${header.cellIndex + 1})`).innerText.trim();
-
                         switch (sortKey) {
                             case 'idevenement':
                             case 'id_utilisateur':
@@ -489,25 +439,11 @@ foreach ($reservations as $r) {
                                 return currentSortOrder === 'asc' ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
                         }
                     });
-
                     // Ajout des lignes triées dans le tbody
                     rows.forEach(row => tableBody.appendChild(row));
                 });
             });
         });
-
-        function showError(field, errorId, message) {
-            document.getElementById(errorId).textContent = message;
-            document.getElementById(errorId).style.display = 'block';
-            field.classList.add('error-border');
-            field.focus();
-        }
-
-        function hideError(field, errorId) {
-            document.getElementById(errorId).textContent = '';
-            document.getElementById(errorId).style.display = 'none';
-            field.classList.remove('error-border');
-        }
     </script>
 </body>
 </html>
