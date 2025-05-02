@@ -9,29 +9,131 @@ require_once '../../model/DashboardModel.php';
 $model = new DashboardModel($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $titre = $_POST['titre'];
-    $description = $_POST['description'];
-    $duree = $_POST['duree'];
-    $niveau = $_POST['niveau'];
-    $certificat = isset($_POST['certificat']) ? $_POST['certificat'] : 'Non';
+    $errors = [];
+    $quizErrors = [];
 
-    // Add the new formation to the database
-    $formationId = $model->addFormation($titre, $description, $duree, $niveau, $certificat);
+    // Validate titre
+    if (empty($_POST['titre'])) {
+        $errors[] = "Le titre est requis.";
+    } else {
+        $titre = htmlspecialchars(trim($_POST['titre']));
+        if (strlen($titre) < 3 || strlen($titre) > 255) {
+            $errors[] = "Le titre doit contenir entre 3 et 255 caractères.";
+        }
+        if (!preg_match('/^[a-zA-Z\s]+$/', $titre)) {
+            $errors[] = "Le titre ne doit contenir que des lettres et des espaces.";
+        }
+    }
 
-    // Add the quiz questions to the database
-    $question1 = $_POST['question1'];
-    $answer1 = isset($_POST['answer1']);
-    $question2 = $_POST['question2'];
-    $answer2 = isset($_POST['answer2']);
-    $question3 = $_POST['question3'];
-    $answer3 = isset($_POST['answer3']);
+    // Validate description
+    if (empty($_POST['description'])) {
+        $errors[] = "La description est requise.";
+    } else {
+        $description = htmlspecialchars(trim($_POST['description']));
+        if (strlen($description) < 10 || strlen($description) > 1000) {
+            $errors[] = "La description doit contenir entre 10 et 1000 caractères.";
+        }
+    }
 
-    $model->addQuiz($formationId, $question1, $answer1, $question2, $answer2, $question3, $answer3);
+    // Validate duree
+    if (empty($_POST['duree'])) {
+        $errors[] = "La durée est requise.";
+    } else {
+        $duree = htmlspecialchars(trim($_POST['duree']));
+        if (!is_numeric($duree) || $duree <= 0) {
+            $errors[] = "La durée doit être un nombre positif.";
+        }
+    }
 
-    // Redirect to the dashboard
-    header('Location: dashboard.php');
-    exit();
+    // Validate niveau
+    if (empty($_POST['niveau'])) {
+        $errors[] = "Le niveau est requis.";
+    } else {
+        $niveau = htmlspecialchars(trim($_POST['niveau']));
+        if (!in_array($niveau, ['Débutant', 'Intermédiaire', 'Avancé'])) {
+            $errors[] = "Le niveau doit être Débutant, Intermédiaire ou Avancé.";
+        }
+    }
+
+    // Validate certificat
+    $certificat = isset($_POST['certificat']) ? 'Oui' : 'Non';
+
+    // If no errors, proceed to add the formation to the database
+    if (empty($errors)) {
+        $formationId = $model->addFormation($titre, $description, $duree, $niveau, $certificat);
+        if ($formationId) {
+            // Validate quiz questions
+            // Validate question1 and answer1
+            if (empty($_POST['question1'])) {
+                $quizErrors[] = "La question 1 est requise.";
+            } else {
+                $question1 = htmlspecialchars(trim($_POST['question1']));
+                if (strlen($question1) < 5 || strlen($question1) > 255) {
+                    $quizErrors[] = "La question 1 doit contenir entre 5 et 255 caractères.";
+                }
+                if (!preg_match('/^[a-zA-Z\s]+$/', $question1)) {
+                    $quizErrors[] = "La question 1 ne doit contenir que des lettres et des espaces.";
+                }
+            }
+
+            $answer1 = isset($_POST['answer1']) ? true : false;
+
+            // Validate question2 and answer2
+            if (empty($_POST['question2'])) {
+                $quizErrors[] = "La question 2 est requise.";
+            } else {
+                $question2 = htmlspecialchars(trim($_POST['question2']));
+                if (strlen($question2) < 5 || strlen($question2) > 255) {
+                    $quizErrors[] = "La question 2 doit contenir entre 5 et 255 caractères.";
+                }
+                if (!preg_match('/^[a-zA-Z\s]+$/', $question2)) {
+                    $quizErrors[] = "La question 2 ne doit contenir que des lettres et des espaces.";
+                }
+            }
+
+            $answer2 = isset($_POST['answer2']) ? true : false;
+
+            // Validate question3 and answer3
+            if (empty($_POST['question3'])) {
+                $quizErrors[] = "La question 3 est requise.";
+            } else {
+                $question3 = htmlspecialchars(trim($_POST['question3']));
+                if (strlen($question3) < 5 || strlen($question3) > 255) {
+                    $quizErrors[] = "La question 3 doit contenir entre 5 et 255 caractères.";
+                }
+                if (!preg_match('/^[a-zA-Z\s]+$/', $question3)) {
+                    $quizErrors[] = "La question 3 ne doit contenir que des lettres et des espaces.";
+                }
+            }
+
+            $answer3 = isset($_POST['answer3']) ? true : false;
+
+            // If no quiz errors, proceed to add the quiz questions to the database
+            if (empty($quizErrors)) {
+                $result = $model->addQuiz($formationId, $question1, $answer1, $question2, $answer2, $question3, $answer3);
+                if ($result) {
+                     //echo "<p>Quiz ajouté avec succès !</p>";
+                    // Optionally, redirect to another page or reset the form
+                } else {
+                     //echo "<p>Une erreur s'est produite lors de l'ajout du quiz.</p>";
+                }
+            } else {
+                // Display quiz errors
+                foreach ($quizErrors as $error) {
+                     //echo "<p style='color: red;'>$error</p>";
+                }
+            }
+        } else {
+             //echo "<p>Une erreur s'est produite lors de l'ajout de la formation.</p>";
+        }
+    } else {
+        // Display formation errors
+        foreach ($errors as $error) {
+             //echo "<p style='color: red;'>$error</p>";
+        }
+    }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -144,14 +246,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <h3 class="mb-0">Formation</h3>
                             </div>
                             <form method="POST" action="">
+                            <?php if (!empty($errors)): ?>
+                                <div>
+                                    <?php foreach ($errors as $error): ?>
+                                        <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                                 <div class="row g-3">
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label">Titre *</label>
-                                        <input type="text" class="form-control bg-white border-0" name="titre" placeholder="Titre de la formation" style="height: 55px;" required>
+                                        <input type="text" class="form-control bg-white border-0" name="titre" placeholder="Titre de la formation" style="height: 55px;"  >
                                     </div>
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label">Niveau *</label>
-                                        <select class="form-select bg-white border-0" name="niveau" style="height: 55px;" required>
+                                        <select class="form-select bg-white border-0" name="niveau" style="height: 55px;"  >
                                             <option value="Débutant">Débutant</option>
                                             <option value="Intermédiaire">Intermédiaire</option>
                                             <option value="Avancé">Avancé</option>
@@ -159,22 +268,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label">Description *</label>
-                                        <textarea class="form-control bg-white border-0" name="description" rows="5" placeholder="Description de la formation" required></textarea>
+                                        <textarea class="form-control bg-white border-0" name="description" rows="5" placeholder="Description de la formation"  ></textarea>
                                     </div>
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label">Durée (heures) *</label>
-                                        <input type="number" class="form-control bg-white border-0" name="duree" placeholder="Durée en heures" style="height: 55px;" required>
+                                        <input type="number" class="form-control bg-white border-0" name="duree" placeholder="Durée en heures" style="height: 55px;"  >
                                     </div>
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label">Certificat</label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="certificat" id="certificatOui" value="Oui" required>
+                                            <input class="form-check-input" type="radio" name="certificat" id="certificatOui" value="Oui"  >
                                             <label class="form-check-label" for="certificatOui">
                                                 Oui
                                             </label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="certificat" id="certificatNon" value="Non" required>
+                                            <input class="form-check-input" type="radio" name="certificat" id="certificatNon" value="Non"  >
                                             <label class="form-check-label" for="certificatNon">
                                                 Non
                                             </label>
@@ -187,7 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Question 1 *</label>
-                                            <input type="text" class="form-control bg-white border-0" name="question1" placeholder="Question 1" style="height: 55px;" required>
+                                            <input type="text" class="form-control bg-white border-0" name="question1" placeholder="Question 1" style="height: 55px;"  >
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Réponse 1</label>
@@ -200,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Question 2 *</label>
-                                            <input type="text" class="form-control bg-white border-0" name="question2" placeholder="Question 2" style="height: 55px;" required>
+                                            <input type="text" class="form-control bg-white border-0" name="question2" placeholder="Question 2" style="height: 55px;"  >
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Réponse 2</label>
@@ -213,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Question 3 *</label>
-                                            <input type="text" class="form-control bg-white border-0" name="question3" placeholder="Question 3" style="height: 55px;" required>
+                                            <input type="text" class="form-control bg-white border-0" name="question3" placeholder="Question 3" style="height: 55px;"  >
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Réponse 3</label>

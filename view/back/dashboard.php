@@ -63,6 +63,52 @@ function getPriorityText($priority) {
 function formatAnswer($answer) {
     return $answer ? 'Vrai' : 'Faux';
 }
+
+
+function getFilters() {
+
+    $filters = [
+        'titre' => '',
+        'niveau' => '',
+        'date_creation' => ''
+    ];
+
+    // Validate titre
+    if (isset($_GET['titre']) && !empty($_GET['titre'])) {
+        $filters['titre'] = htmlspecialchars(trim($_GET['titre']));
+        if (!preg_match('/^[a-zA-Z\s]+$/', $filters['titre'])) {
+            $filters['titre'] = '';
+        }
+    }
+
+    // Validate niveau
+    if (isset($_GET['niveau']) && !empty($_GET['niveau'])) {
+        $filters['niveau'] = htmlspecialchars(trim($_GET['niveau']));
+        if (!in_array($filters['niveau'], ['Débutant', 'Intermédiaire', 'Avancé'])) {
+            $filters['niveau'] = '';
+        }
+    }
+
+    // Validate date_creation
+    if (isset($_GET['date_creation']) && !empty($_GET['date_creation'])) {
+        $filters['date_creation'] = htmlspecialchars(trim($_GET['date_creation']));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $filters['date_creation'])) {
+            $filters['date_creation'] = '';
+        }
+    }
+
+    return $filters;
+}
+$filters=getFilters();
+// Check if all filters are empty
+if (empty($filters['titre']) && empty($filters['niveau']) && empty($filters['date_creation'])) {
+    // Retrieve all formations
+    $formations = $model->getAllFormations();
+} else {
+    // Call the filtering function in the controller
+    $formations = $model->filterFormations($filters);
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -147,6 +193,84 @@ function formatAnswer($answer) {
         .quiz-table {
             margin-top: 2rem;
         }
+
+        /* Sidebar Styling */
+.sidebar {
+    width: 280px; /* Full width of the sidebar */
+    min-height: 100vh;
+    background: #343a40;
+    color: white;
+    transition: all 0.3s;
+    position: fixed;
+    z-index: 1000;
+    left: -260px; /* Hide the sidebar by moving it off-screen */
+    top: 0;
+}
+
+.sidebar-header {
+    padding: 20px;
+    background: #212529;
+    text-align: center;
+}
+
+.sidebar-header img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header h4 {
+    color: #fff;
+    margin-bottom: 0;
+}
+
+.sidebar-header p {
+    color: #adb5bd;
+    font-size: 0.8rem;
+    margin-bottom: 0;
+}
+
+.sidebar-menu {
+    padding: 20px 0;
+}
+
+.sidebar-menu a {
+    display: block;
+    padding: 12px 20px;
+    color: #adb5bd;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.sidebar-menu a:hover,
+.sidebar-menu a.active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu a i {
+    margin-right: 10px;
+}
+
+/* Trigger Zone for Hover */
+.trigger-zone {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 20px; /* Width of the hover-sensitive area */
+    height: 100vh; /* Full height of the viewport */
+    z-index: 1001;
+    cursor: pointer; /* Optional: Change cursor to indicate interactivity */
+}
+
+/* Show Sidebar on Hover */
+.trigger-zone:hover + .sidebar,
+.sidebar:hover {
+    left: 0; /* Bring the sidebar back into view */
+}
     </style>
 </head>
 <body>
@@ -155,6 +279,25 @@ function formatAnswer($answer) {
         <div class="spinner"></div>
     </div>
     <!-- Spinner End -->
+     <!-- Sidebar Start -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h4>Neyrouz Chekir</h4>
+            <p>Administrateur</p>
+        </div>
+        <div class="sidebar-menu">
+            <a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
+            <a href="admin-users.html"><i class="fas fa-users"></i> Utilisateurs</a>
+            <a href="admin-projects.html"><i class="fas fa-project-diagram"></i> Projets</a>
+            <a href="admin-formations.html" class="active"><i class="fas fa-graduation-cap"></i> Formations</a>
+            <a href="admin-events.html"><i class="fas fa-calendar-alt"></i> Événements</a>
+            <a href="admin-investments.html"><i class="fas fa-chart-line"></i> Investissements</a>
+            <a href="admin-reclamations.php" ><i class="fas fa-exclamation-circle"></i> Réclamations</a>
+            <a href="admin-settings.html"><i class="fas fa-cog"></i> Paramètres</a>
+            <a href="logout.html"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+        </div>
+    </div>
+    <!-- Sidebar End -->
     <!-- Topbar Start -->
     <div class="container-fluid bg-dark px-5 d-none d-lg-block">
         <div class="row gx-0">
@@ -173,6 +316,28 @@ function formatAnswer($answer) {
         </div>
     </div>
     <!-- Topbar End -->
+     <!-- Trigger Zone -->
+    <div class="trigger-zone"></div>
+
+<!-- Sidebar Start -->
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h4>Neyrouz Chekir</h4>
+        <p>Administrateur</p>
+    </div>
+    <div class="sidebar-menu">
+        <a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
+        <a href="admin-users.html"><i class="fas fa-users"></i> Utilisateurs</a>
+        <a href="admin-projects.html"><i class="fas fa-project-diagram"></i> Projets</a>
+        <a href="admin-formations.html" class="active"><i class="fas fa-graduation-cap"></i> Formations</a>
+        <a href="admin-events.html"><i class="fas fa-calendar-alt"></i> Événements</a>
+        <a href="admin-investments.html"><i class="fas fa-chart-line"></i> Investissements</a>
+        <a href="admin-reclamations.php" ><i class="fas fa-exclamation-circle"></i> Réclamations</a>
+        <a href="admin-settings.html"><i class="fas fa-cog"></i> Paramètres</a>
+        <a href="logout.html"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+    </div>
+</div>
+<!-- Sidebar End -->
     <!-- Navbar & Carousel Start -->
     <div class="container-fluid position-relative p-0">
         <nav class="navbar navbar-expand-lg navbar-dark px-5 py-3 py-lg-0">
@@ -282,6 +447,12 @@ function formatAnswer($answer) {
                                                         </a>
                                                         <a href="delete-formation.php?id=<?= htmlspecialchars($formation['id']) ?>" class="btn btn-sm btn-danger action-btn" title="Supprimer" onclick="return confirm('Voulez-vous vraiment supprimer cette formation ? Cette action est irréversible.')">
                                                             <i class="fas fa-trash"></i>
+                                                        </a>
+                                                        <a href="../../controller/DashboardController.php?action=generate&id=<?= $formation['id'] ?>" class="generate-link" title="Generate Questions">
+                                                            <i class="fas fa-question-circle"></i>
+                                                        </a>
+                                                        <a href="/generate-certificate" class="icon-button" title="Generate Certificate">
+                                                            <i class="fas fa-certificate"></i> <!-- Certificate icon -->
                                                         </a>
                                                     </td>
                                                 </tr>

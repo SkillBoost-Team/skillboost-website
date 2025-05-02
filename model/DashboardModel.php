@@ -40,6 +40,7 @@ class DashboardModel {
             $stmt->bindParam(':niveau', $niveau);
             $stmt->bindParam(':certificat', $certificat);
             $stmt->execute();
+            return 1;
         } catch (PDOException $e) {
             die('Error updating formation: ' . $e->getMessage());
         }
@@ -132,5 +133,54 @@ class DashboardModel {
         } catch (PDOException $e) {
             die('Error deleting quiz: ' . $e->getMessage());
         }
+    }
+
+    //add 
+    public function addFormation($titre, $description, $duree, $niveau, $certificat) {
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO formation (titre, description, duree, niveau, certificat, date_creation)
+                VALUES (:titre, :description, :duree, :niveau, :certificat, CURRENT_TIMESTAMP)
+            ");
+            $stmt->bindParam(':titre', $titre);
+            $stmt->bindParam(':description', $description);
+            $stmt->bindParam(':duree', $duree, PDO::PARAM_INT);
+            $stmt->bindParam(':niveau', $niveau);
+            $stmt->bindParam(':certificat', $certificat);
+            $stmt->execute();
+            return $this->pdo->lastInsertId();
+        } catch (PDOException $e) {
+            die('Error adding formation: ' . $e->getMessage());
+        }
+    }
+
+    public function filterFormations($filters) {
+
+        $sql = "SELECT * FROM formation WHERE 1=1";
+        $params = [];
+
+        // Validate and add titre filter
+        if (!empty($filters['titre'])) {
+            $sql .= " AND titre LIKE :titre";
+            $params[':titre'] = '%' . $filters['titre'] . '%';
+        }
+
+        // Validate and add niveau filter
+        if (!empty($filters['niveau'])) {
+            $sql .= " AND niveau = :niveau";
+            $params[':niveau'] = $filters['niveau'];
+        }
+
+        // Validate and add date_creation filter
+        if (!empty($filters['date_creation'])) {
+            $sql .= " AND DATE(date_creation) = :date_creation";
+            $params[':date_creation'] = $filters['date_creation'];
+        }
+
+        // Prepare and execute the query
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
     }
 }

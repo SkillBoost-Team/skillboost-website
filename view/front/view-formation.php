@@ -121,6 +121,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .quiz-form .form-check {
             margin-bottom: 0.5rem;
         }
+
+
+                /* Sidebar Styling */
+.sidebar {
+    width: 280px; /* Full width of the sidebar */
+    min-height: 100vh;
+    background: #343a40;
+    color: white;
+    transition: all 0.3s;
+    position: fixed;
+    z-index: 1000;
+    left: -260px; /* Hide the sidebar by moving it off-screen */
+    top: 0;
+}
+
+.sidebar-header {
+    padding: 20px;
+    background: #212529;
+    text-align: center;
+}
+
+.sidebar-header img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header h4 {
+    color: #fff;
+    margin-bottom: 0;
+}
+
+.sidebar-header p {
+    color: #adb5bd;
+    font-size: 0.8rem;
+    margin-bottom: 0;
+}
+
+.sidebar-menu {
+    padding: 20px 0;
+}
+
+.sidebar-menu a {
+    display: block;
+    padding: 12px 20px;
+    color: #adb5bd;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.sidebar-menu a:hover,
+.sidebar-menu a.active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu a i {
+    margin-right: 10px;
+}
+
+/* Trigger Zone for Hover */
+.trigger-zone {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 20px; /* Width of the hover-sensitive area */
+    height: 100vh; /* Full height of the viewport */
+    z-index: 1001;
+    cursor: pointer; /* Optional: Change cursor to indicate interactivity */
+}
+
+/* Show Sidebar on Hover */
+.trigger-zone:hover + .sidebar,
+.sidebar:hover {
+    left: 0; /* Bring the sidebar back into view */
+}
+
     </style>
 </head>
 <body>
@@ -172,8 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Formation Details Card -->
                     <div class="card shadow-sm details-card">
                         <div class="card-body">
-                            <h3>ID: <?= htmlspecialchars($formation['id']) ?></h3>
-                            <p><strong>Titre:</strong> <?= htmlspecialchars($formation['titre']) ?></p>
+                            <h3> <?= htmlspecialchars($formation['titre']) ?></h3>
                             <p><strong>Description:</strong> <?= htmlspecialchars($formation['description']) ?></p>
                             <p><strong>Niveau:</strong> <?= htmlspecialchars($formation['niveau']) ?></p>
                             <p><strong>Durée (heures):</strong> <?= htmlspecialchars($formation['duree']) ?></p>

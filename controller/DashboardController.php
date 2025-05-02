@@ -110,7 +110,125 @@ class DashboardController {
             exit();
         }
     }
+
+    private function generateQuestions($title, $description, $niveau) {
+        $api_key = "2fc9acc0f00c410590cda5da4c9cfe7d"; // Replace with your actual AIML API key
+    $url = "https://api.aimlapi.com/v1/chat/completions";
+
+    $system_prompt = "You are an expert in generating true/false questions for educational purposes.";
+    $user_prompt = "
+    Create exactly three true/false $niveau technical questions based on the following course:
+    Course Title: $title
+    Course Description: $description
+    Output format (strictly follow this format):
+    1. [Question] - [True/False]
+    2. [Question] - [True/False]
+    3. [Question] - [True/False]
+    ";
+
+    $data = [
+        "model" => "gpt-4o", // Example of a more capable model
+        "messages" => [
+            ["role" => "system", "content" => $system_prompt],
+            ["role" => "user", "content" => $user_prompt],
+        ],
+        "temperature" => 0.7, // Control randomness (lower = more deterministic)
+        "max_tokens" => 10000, // Limit the response length
+    ];
+
+    // Step 3: Send the API request using cURL
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $api_key,
+    ]);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // Step 4: Handle the API response
+    if ($http_code !== 200 && $http_code !== 201) {
+        echo "Error calling AIML API: HTTP $http_code\n";
+        echo "Response: $response\n";
+        return [];
+    }
+
+    $responseData = json_decode($response, true);
+    if (!isset($responseData['choices'][0]['message']['content'])) {
+        echo "Error parsing AIML response.";
+        echo "Raw Response: " . print_r($responseData, true); // Log the full response
+        return [];
+    }
+
+    $generatedText = $responseData['choices'][0]['message']['content'];
+
+    // Step 5: Parse the generated text into questions
+    $questions = [];
+    $lines = explode("\n", trim($generatedText));
+
+
+    foreach ($lines as $line) {
+        // Use a more flexible regular expression
+        if (preg_match('/^\d+\.\s*(.*?)\s*-\s*(Vrai|Faux|True|False)$/i', trim($line), $matches)) {
+            $questions[] = [
+                'question' => trim($matches[1]),
+                'answer' => strtolower(trim($matches[2])) === 'true' || strtolower(trim($matches[2])) === 'vrai',
+            ];
+        }
+    }
+
+    return $questions;
+
+    }
+
+    /**
+     * Automatically generate and save quiz questions for a formation.
+     */
+    public function generateQuiz($formationId) {
+        // Fetch the formation details
+        $formation = $this->model->getFormationById($formationId);
+        if (!$formation) {
+            echo "Formation not found.";
+            return;
+        }
+
+        // Generate questions using Hugging Face API
+        $questions = $this->generateQuestions($formation['titre'], $formation['description'], $formation['niveau']);
+        if (empty($questions)) {
+            echo "No questions were generated.";
+            return;
+        }
+
+        // Save the quiz to the database
+        $quizData = [
+            'id_formation' => $formationId,
+            'question1' => $questions[0]['question'] ?? null,
+            'answer1' => $questions[0]['answer'] ?? false,
+            'question2' => $questions[1]['question'] ?? null,
+            'answer2' => $questions[1]['answer'] ?? false,
+            'question3' => $questions[2]['question'] ?? null,
+            'answer3' => $questions[2]['answer'] ?? false,
+        ];
+
+        // Check if a quiz already exists for this formation
+        $existingQuiz = $this->model->getQuizByFormationId($formationId);
+        if ($existingQuiz) {
+            // Update the existing quiz
+            $this->model->updateQuiz($existingQuiz['id'], $quizData['question1'], $quizData['answer1'], $quizData['question2'], $quizData['answer2'], $quizData['question3'], $quizData['answer3']);
+        } else {
+            // Add a new quiz
+            $this->model->addQuiz($quizData['id_formation'], $quizData['question1'], $quizData['answer1'], $quizData['question2'], $quizData['answer2'], $quizData['question3'], $quizData['answer3']);
+        }
+
+        header("location: ../view/back/dashboard.php");
+    }
 }
+
 
 // Determine the action based on the request
 $action = $_GET['action'] ?? 'index';
@@ -134,7 +252,17 @@ switch ($action) {
         $controller = new DashboardController();
         $controller->updateFormation();
         break;
+    case 'generate':
+        if ($formationId) {
+            $controller = new DashboardController();
+            $controller->generateQuiz($formationId);
+        } else {
+            header('Location: /index.php?action=index');
+            exit();
+        }
+        break;
     default:
         header('Location: dashboard.php');
         exit();
 }
+

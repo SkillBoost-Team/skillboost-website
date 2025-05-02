@@ -35,35 +35,163 @@ $answer2 = $quiz['answer2'] ?? false;
 $question3 = $quiz['question3'] ?? '';
 $answer3 = $quiz['answer3'] ?? false;
 
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $titre = $_POST['titre'];
-    $description = $_POST['description'];
-    $duree = $_POST['duree'];
-    $niveau = $_POST['niveau'];
-    $certificat = isset($_POST['certificat']) ? $_POST['certificat'] : 'Non';
+    $errors = [];
+    $quizErrors = [];
 
-    // Update the formation in the database
-    $model->updateFormation($id, $titre, $description, $duree, $niveau, $certificat);
-
-    // Update the quiz in the database
-    $question1 = $_POST['question1'];
-    $answer1 = isset($_POST['answer1']);
-    $question2 = $_POST['question2'];
-    $answer2 = isset($_POST['answer2']);
-    $question3 = $_POST['question3'];
-    $answer3 = isset($_POST['answer3']);
-
-    if ($quiz) {
-        // Update the existing quiz
-        $model->updateQuiz($quiz['id'], $question1, $answer1, $question2, $answer2, $question3, $answer3);
+    // Validate titre
+    if (empty($_POST['titre'])) {
+        $errors[] = "Le titre est requis.";
     } else {
-        // Add a new quiz
-        $model->addQuiz($id, $question1, $answer1, $question2, $answer2, $question3, $answer3);
+        $titre = htmlspecialchars(trim($_POST['titre']));
+        if (strlen($titre) < 3 || strlen($titre) > 255) {
+            $errors[] = "Le titre doit contenir entre 3 et 255 caractères.";
+        }
+        if (!preg_match('/^[a-zA-Z\s]+$/', $titre)) {
+            $errors[] = "Le titre ne doit contenir que des lettres et des espaces.";
+        }
     }
 
-    // Redirect to the dashboard
-    header('Location: dashboard.php');
-    exit();
+    // Validate description
+    if (empty($_POST['description'])) {
+        $errors[] = "La description est requise.";
+    } else {
+        $description = htmlspecialchars(trim($_POST['description']));
+        if (strlen($description) < 10 || strlen($description) > 1000) {
+            $errors[] = "La description doit contenir entre 10 et 1000 caractères.";
+        }
+    }
+
+    // Validate duree
+    if (empty($_POST['duree'])) {
+        $errors[] = "La durée est requise.";
+    } else {
+        $duree = htmlspecialchars(trim($_POST['duree']));
+        if (!is_numeric($duree) || $duree <= 0) {
+            $errors[] = "La durée doit être un nombre positif.";
+        }
+    }
+
+    // Validate niveau
+    if (empty($_POST['niveau'])) {
+        $errors[] = "Le niveau est requis.";
+    } else {
+        $niveau = htmlspecialchars(trim($_POST['niveau']));
+        if (!in_array($niveau, ['Débutant', 'Intermédiaire', 'Avancé'])) {
+            $errors[] = "Le niveau doit être Débutant, Intermédiaire ou Avancé.";
+        }
+    }
+
+    // Validate certificat
+    $certificat = isset($_POST['certificat']) ? 'Oui' : 'Non';
+
+    // If no errors, proceed to update the formation in the database
+    if (empty($errors)) {
+        $id = isset($_POST['id']) ? intval($_POST['id']) : null;
+
+        if (empty($id) || !is_int($id) || $id <= 0) {
+            $errors[] = "L'ID de formation est invalide.";
+        } else {
+            $result = $model->updateFormation($id, $titre, $description, $duree, $niveau, $certificat);
+            if ($result) {
+                 //echo "<p>Formation mise à jour avec succès !</p>";
+
+                // Check if quiz fields are provided and valid
+                $quizProvided = false;
+
+                // Validate question1 and answer1
+                if (!empty($_POST['question1'])) {
+                    $quizProvided = true;
+                    $question1 = htmlspecialchars(trim($_POST['question1']));
+                    if (strlen($question1) < 5 || strlen($question1) > 255) {
+                        $quizErrors[] = "La question 1 doit contenir entre 5 et 255 caractères.";
+                    }
+                    if (!preg_match('/^[a-zA-Z\s]+$/', $question1)) {
+                        $quizErrors[] = "La question 1 ne doit contenir que des lettres et des espaces.";
+                    }
+                } else {
+                    $quizErrors[] = "toutes les questions sont requises";
+                }
+
+                $answer1 = isset($_POST['answer1']) ? true : false;
+
+                // Validate question2 and answer2
+                if (!empty($_POST['question2'])) {
+                    $quizProvided = true;
+                    $question2 = htmlspecialchars(trim($_POST['question2']));
+                    if (strlen($question2) < 5 || strlen($question2) > 255) {
+                        $quizErrors[] = "La question 2 doit contenir entre 5 et 255 caractères.";
+                    }
+                    if (!preg_match('/^[a-zA-Z\s]+$/', $question2)) {
+                        $quizErrors[] = "La question 2 ne doit contenir que des lettres et des espaces.";
+                    }
+                } else {
+                    $quizErrors[] = "toutes les questions sont requises";
+                }
+
+                $answer2 = isset($_POST['answer2']) ? true : false;
+
+                // Validate question3 and answer3
+                if (!empty($_POST['question3'])) {
+                    $quizProvided = true;
+                    $question3 = htmlspecialchars(trim($_POST['question3']));
+                    if (strlen($question3) < 5 || strlen($question3) > 255) {
+                        $quizErrors[] = "La question 3 doit contenir entre 5 et 255 caractères.";
+                    }
+                    if (!preg_match('/^[a-zA-Z\s]+$/', $question3)) {
+                        $quizErrors[] = "La question 3 ne doit contenir que des lettres et des espaces.";
+                    }
+                } else {
+                    $quizErrors[] = "toutes les questions sont requises";
+                }
+
+                $answer3 = isset($_POST['answer3']) ? true : false;
+
+                // If quiz fields are provided and valid, proceed to update or add the quiz
+                if ($quizProvided && empty($quizErrors)) {
+                    // Check if quiz already exists
+                    $quiz = $model->getQuizByFormationId($id);
+
+                    if ($quiz) {
+                        // Update the existing quiz
+                        $quizResult = $model->updateQuiz($quiz['id'], $question1, $answer1, $question2, $answer2, $question3, $answer3);
+                        if ($quizResult) {
+                             //echo "<p>Quiz mis à jour avec succès !</p>";
+                             
+                        } else {
+                             //echo "<p>Une erreur s'est produite lors de la mise à jour du quiz.</p>";
+                        }
+                    } else {
+                        // Add a new quiz
+                        $quizResult = $model->addQuiz($id, $question1, $answer1, $question2, $answer2, $question3, $answer3);
+                        if ($quizResult) {
+                             //echo "<p>Quiz ajouté avec succès !</p>";
+                        } else {
+                             //echo "<p>Une erreur s'est produite lors de l'ajout du quiz.</p>";
+                        }
+                    }
+                } elseif ($quizProvided && !empty($quizErrors)) {
+                    // Display quiz errors
+                    foreach ($quizErrors as $error) {
+                         //echo "<p style='color: red;'>$error</p>";
+                    }
+                }
+                
+            } else {
+                 //echo "<p>Une erreur s'est produite lors de la mise à jour de la formation.</p>";
+            }
+        }
+    } else {
+        // Display formation errors
+        foreach ($errors as $error) {
+             //echo "<p style='color: red;'>$error</p>";
+        }
+    }
+    if (empty($quizErrors) && empty($errors))
+    {
+        header("location:dashboard.php");
+    }
 }
 ?>
 
@@ -177,15 +305,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <h3 class="mb-0">Formation</h3>
                             </div>
                             <form method="POST" action="">
+                                <?php if (!empty($errors)): ?>
+                                    <div>
+                                        <?php foreach ($errors as $error): ?>
+                                            <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($quizErrors)): ?>
+                                    <div>
+                                        <?php foreach ($quizErrors as $error): ?>
+                                            <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                                 <input type="hidden" name="id" value="<?= htmlspecialchars($formation['id']) ?>">
                                 <div class="row g-3">
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label">Titre *</label>
-                                        <input type="text" class="form-control bg-white border-0" name="titre" value="<?= htmlspecialchars($formation['titre']) ?>" style="height: 55px;" required>
+                                        <input type="text" class="form-control bg-white border-0" name="titre" value="<?= htmlspecialchars($formation['titre']) ?>" style="height: 55px;"  >
                                     </div>
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label">Niveau *</label>
-                                        <select class="form-select bg-white border-0" name="niveau" style="height: 55px;" required>
+                                        <select class="form-select bg-white border-0" name="niveau" style="height: 55px;"  >
                                             <option value="Débutant" <?= ($formation['niveau'] === 'Débutant') ? 'selected' : '' ?>>Débutant</option>
                                             <option value="Intermédiaire" <?= ($formation['niveau'] === 'Intermédiaire') ? 'selected' : '' ?>>Intermédiaire</option>
                                             <option value="Avancé" <?= ($formation['niveau'] === 'Avancé') ? 'selected' : '' ?>>Avancé</option>
@@ -193,11 +335,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label">Description *</label>
-                                        <textarea class="form-control bg-white border-0" name="description" rows="5" style="height: auto;" required><?= htmlspecialchars($formation['description']) ?></textarea>
+                                        <textarea class="form-control bg-white border-0" name="description" rows="5" style="height: auto;"  ><?= htmlspecialchars($formation['description']) ?></textarea>
                                     </div>
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label">Durée (heures) *</label>
-                                        <input type="number" class="form-control bg-white border-0" name="duree" value="<?= htmlspecialchars($formation['duree']) ?>" style="height: 55px;" required>
+                                        <input type="number" class="form-control bg-white border-0" name="duree" value="<?= htmlspecialchars($formation['duree']) ?>" style="height: 55px;"  >
                                     </div>
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label">Certificat</label>
@@ -221,7 +363,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Question 1 *</label>
-                                            <input type="text" class="form-control bg-white border-0" name="question1" value="<?= htmlspecialchars($question1) ?>" style="height: 55px;" required>
+                                            <input type="text" class="form-control bg-white border-0" name="question1" value="<?= htmlspecialchars($question1) ?>" style="height: 55px;"  >
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Réponse 1</label>
@@ -234,7 +376,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Question 2 *</label>
-                                            <input type="text" class="form-control bg-white border-0" name="question2" value="<?= htmlspecialchars($question2) ?>" style="height: 55px;" required>
+                                            <input type="text" class="form-control bg-white border-0" name="question2" value="<?= htmlspecialchars($question2) ?>" style="height: 55px;"  >
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Réponse 2</label>
@@ -247,7 +389,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Question 3 *</label>
-                                            <input type="text" class="form-control bg-white border-0" name="question3" value="<?= htmlspecialchars($question3) ?>" style="height: 55px;" required>
+                                            <input type="text" class="form-control bg-white border-0" name="question3" value="<?= htmlspecialchars($question3) ?>" style="height: 55px;"  >
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Réponse 3</label>
