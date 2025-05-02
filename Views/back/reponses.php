@@ -1,217 +1,3 @@
-<?php
-// Connexion à la base de données
-$host = 'localhost';
-$dbname = 'skillboost';
-$username = 'root';
-$password = '';
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
-
-// Récupération de l'ID de la réclamation depuis l'URL
-$reclamation_id = isset($_GET['reclamation_id']) ? intval($_GET['reclamation_id']) : 0;
-
-if ($reclamation_id <= 0) {
-    die("ID de réclamation invalide.");
-}
-
-// Récupération des détails de la réclamation
-$stmt = $pdo->prepare("SELECT * FROM reclamations WHERE id = :id");
-$stmt->execute([':id' => $reclamation_id]);
-$reclamation = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$reclamation) {
-    die("Réclamation non trouvée.");
-}
-
-// Traitement des actions (ajout, modification, suppression de réponse)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Ajout d'une nouvelle réponse
-    if (isset($_POST['action'])) {
-        switch ($_POST['action']) {
-            case 'add_response':
-                $response_text = trim($_POST['response_text']);
-                if (!empty($response_text)) {
-                    try {
-                        $stmt = $pdo->prepare("INSERT INTO reponses_reclamations (reclamation_id, admin_id, reponse, date_reponse) VALUES (:reclamation_id, :admin_id, :reponse, NOW())");
-                        $stmt->execute([
-                            ':reclamation_id' => $reclamation_id,
-                            ':admin_id' => 1, // Remplacer par l'ID de l'administrateur actuel
-                            ':reponse' => $response_text
-                        ]);
-                        
-                        // Mise à jour du statut de la réclamation si c'est la première réponse
-                        $stmt = $pdo->prepare("SELECT COUNT(*) FROM reponses_reclamations WHERE reclamation_id = :reclamation_id");
-                        $stmt->execute([':reclamation_id' => $reclamation_id]);
-                        $count = $stmt->fetchColumn();
-                        
-                        if ($count == 1) {
-                            $stmt = $pdo->prepare("UPDATE reclamations SET STATUS = 'in-progress' WHERE id = :id");
-                            $stmt->execute([':id' => $reclamation_id]);
-                        }
-                        
-                        $_SESSION['success_message'] = "Réponse ajoutée avec succès.";
-                        header("Location: " . $_SERVER['PHP_SELF'] . "?reclamation_id=" . $reclamation_id);
-                        exit();
-                    } catch (PDOException $e) {
-                        $_SESSION['error_message'] = "Erreur lors de l'ajout de la réponse : " . $e->getMessage();
-                    }
-                } else {
-                    $_SESSION['error_message'] = "Le texte de la réponse ne peut pas être vide.";
-                }
-                break;
-                
-            case 'update_response':
-                $response_id = isset($_POST['response_id']) ? intval($_POST['response_id']) : 0;
-                $response_text = trim($_POST['response_text']);
-                
-                if ($response_id > 0 && !empty($response_text)) {
-                    try {
-                        $stmt = $pdo->prepare("UPDATE reponses_reclamations SET reponse = :reponse WHERE id = :id AND reclamation_id = :reclamation_id");
-                        $stmt->execute([
-                            ':reponse' => $response_text,
-                            ':id' => $response_id,
-                            ':reclamation_id' => $reclamation_id
-                        ]);
-                        
-                        if ($stmt->rowCount() > 0) {
-                            $_SESSION['success_message'] = "Réponse modifiée avec succès.";
-                        } else {
-                            $_SESSION['error_message'] = "Aucune modification effectuée ou réponse non trouvée.";
-                        }
-                        
-                        header("Location: " . $_SERVER['PHP_SELF'] . "?reclamation_id=" . $reclamation_id);
-                        exit();
-                    } catch (PDOException $e) {
-                        $_SESSION['error_message'] = "Erreur lors de la modification de la réponse : " . $e->getMessage();
-                    }
-                } else {
-                    $_SESSION['error_message'] = "Données invalides pour la modification.";
-                }
-                break;
-        }
-    }
-}
-// Traitement de la suppression d'une réponse (via GET pour simplifier)
-if (isset($_GET['delete_response'])) {
-    $response_id = intval($_GET['delete_response']);
-    
-    if ($response_id > 0) {
-        try {
-            $stmt = $pdo->prepare("DELETE FROM reponses_reclamations WHERE id = :id AND reclamation_id = :reclamation_id");
-            $stmt->execute([
-                ':id' => $response_id,
-                ':reclamation_id' => $reclamation_id
-            ]);
-            
-            if ($stmt->rowCount() > 0) {
-                $_SESSION['success_message'] = "Réponse supprimée avec succès.";
-                
-                // Vérifier s'il reste des réponses et mettre à jour le statut si nécessaire
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM reponses_reclamations WHERE reclamation_id = :reclamation_id");
-                $stmt->execute([':reclamation_id' => $reclamation_id]);
-                $count = $stmt->fetchColumn();
-                
-                if ($count == 0) {
-                    $stmt = $pdo->prepare("UPDATE reclamations SET STATUS = 'new' WHERE id = :id");
-                    $stmt->execute([':id' => $reclamation_id]);
-                }
-            } else {
-                $_SESSION['error_message'] = "Aucune réponse trouvée à supprimer.";
-            }
-            
-            header("Location: " . $_SERVER['PHP_SELF'] . "?reclamation_id=" . $reclamation_id);
-            exit();
-        } catch (PDOException $e) {
-            $_SESSION['error_message'] = "Erreur lors de la suppression de la réponse : " . $e->getMessage();
-        }
-    }
-}
-
-// Traitement du changement de statut de la réclamation
-if (isset($_GET['change_status'])) {
-    $new_status = $_GET['change_status'];
-    $allowed_statuses = ['new', 'in-progress', 'resolved', 'rejected'];
-    
-    if (in_array($new_status, $allowed_statuses)) {
-        try {
-            $stmt = $pdo->prepare("UPDATE reclamations SET STATUS = :status WHERE id = :id");
-            $stmt->execute([
-                ':status' => $new_status,
-                ':id' => $reclamation_id
-            ]);
-            
-            $_SESSION['success_message'] = "Statut de la réclamation mis à jour avec succès.";
-            header("Location: " . $_SERVER['PHP_SELF'] . "?reclamation_id=" . $reclamation_id);
-            exit();
-        } catch (PDOException $e) {
-            $_SESSION['error_message'] = "Erreur lors de la mise à jour du statut : " . $e->getMessage();
-        }
-    } else {
-        $_SESSION['error_message'] = "Statut invalide.";
-    }
-}
-
-// Récupération des réponses pour la réclamation
-$stmt = $pdo->prepare("SELECT * FROM reponses_reclamations WHERE reclamation_id = :reclamation_id ORDER BY date_reponse ASC");
-$stmt->execute([':reclamation_id' => $reclamation_id]);
-$responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Récupération du message de session s'il existe
-session_start();
-$success_message = $_SESSION['success_message'] ?? null;
-$error_message = $_SESSION['error_message'] ?? null;
-unset($_SESSION['success_message']);
-unset($_SESSION['error_message']);
-
-// Fonctions utilitaires
-function getStatusClass($status) {
-    $classes = [
-        'new' => 'status-new',
-        'in-progress' => 'status-in-progress',
-        'resolved' => 'status-resolved',
-        'rejected' => 'status-rejected'
-    ];
-    return $classes[$status] ?? '';
-}
-
-function getStatusText($status) {
-    $texts = [
-        'new' => 'Nouveau',
-        'in-progress' => 'En cours',
-        'resolved' => 'Résolu',
-        'rejected' => 'Rejeté'
-    ];
-    return $texts[$status] ?? $status;
-}
-
-function getTypeText($type) {
-    $texts = [
-        'technique' => 'Technique',
-        'paiement' => 'Paiement',
-        'service' => 'Service client',
-        'autre' => 'Autre'
-    ];
-    return $texts[$type] ?? $type;
-}
-
-function getPriorityText($priority) {
-    $texts = [
-        'high' => 'Haute',
-        'medium' => 'Moyenne',
-        'low' => 'Basse'
-    ];
-    return $texts[$priority] ?? $priority;
-}
-
-function formatDate($dateString) {
-    return date('d/m/Y H:i', strtotime($dateString));
-}
-?>
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -523,8 +309,8 @@ function formatDate($dateString) {
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Détails de la Réclamation</h5>
                             <div>
-                                <span class="status-badge <?= getStatusClass($reclamation['STATUS']) ?>">
-                                    <?= getStatusText($reclamation['STATUS']) ?>
+                                <span class="status-badge <?= ReclamationModel::getStatusClass($reclamation['STATUS']) ?>">
+                                    <?= ReclamationModel::getStatusText($reclamation['STATUS']) ?>
                                 </span>
                             </div>
                         </div>
@@ -536,9 +322,9 @@ function formatDate($dateString) {
                                     <p><strong>Sujet:</strong> <?= htmlspecialchars($reclamation['SUBJECT']) ?></p>
                                 </div>
                                 <div class="col-md-6">
-                                    <p><strong>Type:</strong> <?= getTypeText($reclamation['TYPE']) ?></p>
-                                    <p><strong>Priorité:</strong> <span class="priority-<?= $reclamation['priority'] ?>"><?= getPriorityText($reclamation['priority']) ?></span></p>
-                                    <p><strong>Date de Création:</strong> <?= formatDate($reclamation['created_at']) ?></p>
+                                    <p><strong>Type:</strong> <?= ReclamationModel::getTypeText($reclamation['TYPE']) ?></p>
+                                    <p><strong>Priorité:</strong> <span class="priority-<?= $reclamation['priority'] ?>"><?= ReclamationModel::getPriorityText($reclamation['priority']) ?></span></p>
+                                    <p><strong>Date de Création:</strong> <?= ReclamationModel::formatDate($reclamation['created_at']) ?></p>
                                 </div>
                             </div>
                             <hr>
@@ -632,7 +418,7 @@ function formatDate($dateString) {
                                             <i class="fas fa-user-shield me-2"></i>Admin #<?= htmlspecialchars($response['admin_id']) ?>
                                         </div>
                                         <div class="response-date">
-                                            <i class="fas fa-clock me-2"></i><?= formatDate($response['date_reponse']) ?>
+                                            <i class="fas fa-clock me-2"></i><?= ReclamationModel::formatDate($response['date_reponse']) ?>
                                         </div>
                                         <div class="response-text mt-2">
                                             <?= nl2br(htmlspecialchars($response['reponse'])) ?>

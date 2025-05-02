@@ -1,5 +1,5 @@
 <?php
-require_once '../models/ReclamationModel.php';
+require_once '../models/ReponsesModel.php';
 
 class ReclamationController {
     private $model;
