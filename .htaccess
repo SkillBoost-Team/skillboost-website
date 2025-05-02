@@ -1,0 +1,25 @@
+RewriteEngine On
+RewriteBase /
+
+# Empêcher l'accès aux dossiers
+RewriteRule ^app/.* - [F]
+RewriteRule ^utils/.* - [F]
+
+# Rediriger tout vers public/index.php sauf les fichiers existants
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ public/index.php/$1 [L]
+
+# Protection des dossiers
+Options -Indexes
+
+# Protection des fichiers sensibles
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "^(composer\.json|composer\.lock|package\.json|package-lock\.json|README\.md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch> 

@@ -1,0 +1,112 @@
+/* Styles généraux */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+/* Table des investissements */
+.investments-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.investments-table th,
+.investments-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.investments-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+}
+
+.investments-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Boutons */
+.update-status-btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-right: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.update-status-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-accept {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-reject {
+    background-color: #f44336;
+    color: white;
+}
+
+.btn-accept:hover:not(:disabled) {
+    background-color: #45a049;
+}
+
+.btn-reject:hover:not(:disabled) {
+    background-color: #da190b;
+}
+
+/* Statuts */
+[data-invest-status] {
+    font-weight: 500;
+}
+
+/* Messages */
+.success-message,
+.error-message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    display: none;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.success-message {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+.error-message {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .investments-table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .update-status-btn {
+        padding: 6px 10px;
+        font-size: 14px;
+    }
+} 
