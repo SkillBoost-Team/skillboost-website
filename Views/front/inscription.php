@@ -102,33 +102,39 @@ if (isset($_POST['inscrire'])) {
         </div>
     </div>
     <!-- Topbar End -->
-    <div class="container mt-5">
-        <h2>Créer un compte</h2>
+    <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card p-5 shadow" style="max-width: 500px; width: 100%;">
+        <h2 class="mb-4 text-center">Créer un compte</h2>
         <form method="POST">
             <div class="mb-3">
-                <label for="nom">Nom</label>
+                <label for="nom" class="form-label">Nom</label>
                 <input type="text" name="nom" class="form-control" required>
             </div>
             <div class="mb-3">
-                <label for="email">Email</label>
+                <label for="email" class="form-label">Email</label>
                 <input type="email" name="email" class="form-control" required>
             </div>
             <div class="mb-3">
-                <label for="mot_de_passe">Mot de passe</label>
+                <label for="mot_de_passe" class="form-label">Mot de passe</label>
                 <input type="password" name="mot_de_passe" class="form-control" required>
             </div>
             <div class="mb-3">
-            <label for="role">Je suis :</label>
-<select name="role" class="form-select" required>
-    <option value="utilisateur">Utilisateur</option>
-    <option value="investisseur">Investisseur</option>
-    <option value="partenaire">Partenaire</option>
-</select>
-
+                <label for="role" class="form-label">Je suis :</label>
+                <select name="role" class="form-select" required>
+                    <option value="admin">Admin</option>
+                    <option value="utilisateur">Utilisateur</option>
+                    <option value="investisseur">Investisseur</option>
+                    <option value="partenaire">Partenaire</option>
+                </select>
             </div>
-            <button type="submit" name="inscrire" class="btn btn-primary">S'inscrire</button>
-            <p class="mt-3">Déjà inscrit ? <a href="login.php">Se connecter</a></p>
+            <button type="submit" name="inscrire" class="btn btn-primary w-100">S'inscrire</button>
+            <p class="mt-3 text-center">Déjà inscrit ? <a href="login.php">Se connecter</a></p>
         </form>
+    </div>
+</div>
+
+
+           </form>
     </div>
      <!-- Footer Start -->
      <div class="container-fluid bg-dark text-light mt-5 wow fadeInUp" data-wow-delay="0.1s">

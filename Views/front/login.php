@@ -1,6 +1,92 @@
 <?php
 session_start();
 include '../front/config.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+
+
+$client = new Google_Client();
+$client->setClientId('1050641252142-ui2m11c3lflmgc3vahk01lrqiebf45mm.apps.googleusercontent.com');
+$client->setClientSecret('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'); // remplace ce champ
+$client->setRedirectUri('http://localhost/SkillBoost%20WebSite/Views/front/login.php'); // remplace le chemin exact
+$client->addScope("email");
+$client->addScope("profile");
+$client->setAccessType('offline'); 
+
+// Pour connexion rapide (connexion directe)
+$client->setPrompt('none');
+$google_login_url_quick = $client->createAuthUrl();
+
+// Pour forcer la sélection de compte
+$client->setPrompt('select_account');
+$google_login_url_select = $client->createAuthUrl();
+
+//test de reuisir google 
+if (isset($_GET['code'])) {
+    $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
+
+    if ($token && !isset($token['error'])) {
+        $client->setAccessToken($token['access_token']);
+
+        $google_service = new Google_Service_Oauth2($client);
+        $google_info = $google_service->userinfo->get();
+
+        $email = $google_info->email;
+        $nom = $google_info->name;
+
+        // Vérifie si l'utilisateur existe déjà
+        $stmt = $conn->prepare("SELECT id, role FROM utilisateurs WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $stmt->store_result();
+
+        if ($stmt->num_rows === 1) {
+            $stmt->bind_result($id, $role);
+            $stmt->fetch();
+        } else {
+            // Insertion si nouvel utilisateur
+            $role = 'utilisateur';
+            $stmt_insert = $conn->prepare("INSERT INTO utilisateurs (nom, email, role) VALUES (?, ?, ?)");
+            $stmt_insert->bind_param("sss", $nom, $email, $role);
+            $stmt_insert->execute();
+            $id = $stmt_insert->insert_id;
+        }
+
+        // Démarrage de session
+        $_SESSION['id'] = $id;
+        $_SESSION['nom'] = $nom;
+        $_SESSION['role'] = $role;
+        $_SESSION['last_activity'] = time();
+        $_SESSION['session_token'] = bin2hex(random_bytes(32));
+
+        header("Location: index.php");
+        exit;
+    } else {
+        echo "<pre>";
+        print_r($token); // Affiche le détail si erreur Google
+        echo "</pre>";
+        echo "<script>alert('❌ Erreur lors de l\\'authentification Google'); window.location.href = 'login.php';</script>";
+        exit;
+    }
+}
+
+
+
+
+
+
+
+// Vérifier si l'utilisateur est déjà connecté
+if (isset($_SESSION['id'])) {
+    // Vérifier si une session est déjà active
+    if (isset($_SESSION['session_token'])) {
+        // Rediriger vers logout.php pour fermer la session existante
+        header("Location: logout.php");
+        exit();
+    }
+    header("Location: index.php");
+    exit();
+}
 
 if (isset($_POST['connecter'])) {
     $email = $_POST['email'];
@@ -12,22 +98,26 @@ if (isset($_POST['connecter'])) {
     $stmt->store_result();
 
     if ($stmt->num_rows == 1) {
-        $stmt->bind_result($id, $nom, $hashed_password, $role);
+        $stmt->bind_result($id, $nom, $mot_de_passe_en_base, $role);
         $stmt->fetch();
 
-        if ($mot_de_passe === $hashed_password) {
+        if ($mot_de_passe === $mot_de_passe_en_base) {
             $_SESSION['id'] = $id;
             $_SESSION['nom'] = $nom;
             $_SESSION['role'] = $role;
-            header("Location: index.html"); // 🔁 redirection vers la page initiale
+            $_SESSION['session_token'] = bin2hex(random_bytes(32));
+            header("Location: index.php");
             exit();
         } else {
-            echo "<script>alert('❌ Mot de passe incorrect'); window.history.back();</script>";
+            echo "<script>alert('Mot de passe incorrect');</script>";
         }
     } else {
-        echo "<script>alert('❌ Email non trouvé'); window.history.back();</script>";
+        echo "<script>alert('Email non trouvé');</script>";
     }
 }
+
+    
+
 ?>
 
 <!-- Formulaire HTML -->
@@ -112,11 +202,28 @@ if (isset($_POST['connecter'])) {
             <div class="mb-3">
                 <label for="mot_de_passe">Mot de passe</label>
                 <input type="password" name="mot_de_passe" class="form-control" required>
+
+
             </div>
-            <button type="submit" name="connecter" class="btn btn-primary">Connexion</button>
+            
+
+<div class="d-flex justify-content-start mt-3 mb-3">
+    <a href="<?php echo $google_login_url_select; ?>" class="btn d-flex align-items-center" style="background-color: #f1f1f1; color: #444; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 8px 16px; margin-left: 10px;">
+        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo" style="width: 20px; height: 20px; margin-right: 10px;">
+        <span>Choisir un compte Google</span>
+    </a>
+</div>
+
+<div class="text-center">
+    <button type="submit" name="connecter" class="btn btn-primary">Connexion</button>
+</div>
+
             <p class="mt-3">Pas encore inscrit ? <a href="inscription.php">Créer un compte</a></p>
+            <p class="mt-3"><a href="mot_de_passe_oublie.php">Mot de passe oublié ?</a></p>
         </form>
+        
     </div>
+    
      <!-- Footer Start -->
      <div class="container-fluid bg-dark text-light mt-5 wow fadeInUp" data-wow-delay="0.1s">
         <div class="container">
@@ -139,6 +246,7 @@ if (isset($_POST['connecter'])) {
                                 <i class="bi bi-telephone text-primary me-2"></i>
                                 <p class="mb-0">+216 90 044 054</p>
                             </div>
+                           
                             <div class="d-flex mt-4">
                                 <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-twitter fw-normal"></i></a>
                                 <a class="btn btn-primary btn-square me-2" href="#"><i class="fab fa-facebook-f fw-normal"></i></a>
@@ -162,8 +270,7 @@ if (isset($_POST['connecter'])) {
             </div>
         </div>
     </div>
-    <!-- Footer End -->
-    <script src="js/validation.js"></script>
+    
 
 </body>
 </html>
