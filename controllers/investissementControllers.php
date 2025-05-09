@@ -23,11 +23,10 @@ class InvestissementController {
             $query = "SELECT p.*, 
                      COALESCE(SUM(CASE WHEN i.statut = 'Accepté' THEN i.montant ELSE 0 END), 0) as montant_actuel,
                      p.montant - COALESCE(SUM(CASE WHEN i.statut = 'Accepté' THEN i.montant ELSE 0 END), 0) as montant_restant,
-                     u.nom as nom_createur,
-                     u.prenom as prenom_createur
+                     u.full_name as nom_createur
                      FROM projet p
                      LEFT JOIN investissement i ON p.id = i.id_projet
-                     LEFT JOIN utilisateur u ON p.id_createur = u.id
+                     LEFT JOIN users u ON p.id_createur = u.id
                      WHERE p.statut = 'En cours'
                      GROUP BY p.id";
             
@@ -45,7 +44,8 @@ class InvestissementController {
             $query = "SELECT COALESCE(SUM(montant), 0) as montant_investi 
                      FROM investissement 
                      WHERE id_projet = :id_projet 
-                     AND id_investisseur = :id_investisseur";
+                     AND id_investisseur = :id_investisseur
+                     AND statut = 'Accepté'";
             
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id_projet', $id_projet);
@@ -55,6 +55,7 @@ class InvestissementController {
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result['montant_investi'];
         } catch (Exception $e) {
+            error_log($e->getMessage());
             return 0;
         }
     }
@@ -107,12 +108,13 @@ class InvestissementController {
             $stmt->bindParam(':id_projet', $postData['id_projet'], PDO::PARAM_INT);
             $stmt->bindParam(':id_investisseur', $_SESSION['user_id'], PDO::PARAM_INT);
             $stmt->bindParam(':montant', $postData['montant'], PDO::PARAM_STR);
-            $stmt->bindParam(':pourcentage', $postData['pourcentage'], PDO::PARAM_STR);
+            $stmt->bindParam(':pourcentage', $postData['pourcentage'], PDO::PARAM_INT);
             if (!$stmt->execute()) {
                 throw new Exception("Erreur lors de l'enregistrement de l'investissement");
             }
             return true;
         } catch (Exception $e) {
+            error_log($e->getMessage());
             throw $e;
         }
     }
@@ -131,6 +133,7 @@ class InvestissementController {
             
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
+            error_log($e->getMessage());
             return [];
         }
     }
@@ -168,11 +171,10 @@ class InvestissementController {
         try {
             $query = "SELECT 
                         i.*,
-                        u.nom as nom_investisseur,
-                        u.prenom as prenom_investisseur,
+                        u.full_name as nom_investisseur,
                         p.id_createur
                      FROM investissement i
-                     JOIN utilisateur u ON i.id_investisseur = u.id
+                     JOIN users u ON i.id_investisseur = u.id
                      JOIN projet p ON i.id_projet = p.id
                      WHERE i.id_projet = :id_projet
                      ORDER BY i.date_investissement DESC";
@@ -259,15 +261,13 @@ class InvestissementController {
                         i.*,
                         p.titre as titre_projet,
                         p.id_createur,
-                        creator.nom as nom_createur,
-                        creator.prenom as prenom_createur,
-                        investor.nom as nom_investisseur,
-                        investor.prenom as prenom_investisseur,
+                        creator.full_name as nom_createur,
+                        investor.full_name as nom_investisseur,
                         i.date_investissement as date_creation
                      FROM investissement i
                      JOIN projet p ON i.id_projet = p.id
-                     JOIN utilisateur creator ON p.id_createur = creator.id
-                     JOIN utilisateur investor ON i.id_investisseur = investor.id
+                     JOIN users creator ON p.id_createur = creator.id
+                     JOIN users investor ON i.id_investisseur = investor.id
                      ORDER BY i.date_investissement DESC";
             
             $stmt = $this->db->prepare($query);
@@ -285,15 +285,13 @@ class InvestissementController {
                         i.*,
                         p.titre as titre_projet,
                         p.id_createur,
-                        creator.nom as nom_createur,
-                        creator.prenom as prenom_createur,
-                        investor.nom as nom_investisseur,
-                        investor.prenom as prenom_investisseur,
+                        creator.full_name as nom_createur,
+                        investor.full_name as nom_investisseur,
                         i.date_investissement as date_creation
                      FROM investissement i
                      JOIN projet p ON i.id_projet = p.id
-                     JOIN utilisateur creator ON p.id_createur = creator.id
-                     JOIN utilisateur investor ON i.id_investisseur = investor.id
+                     JOIN users creator ON p.id_createur = creator.id
+                     JOIN users investor ON i.id_investisseur = investor.id
                      WHERE i.id = :id";
             
             $stmt = $this->db->prepare($query);

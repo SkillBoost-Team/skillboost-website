@@ -28,15 +28,13 @@ class InvestissementsController {
                         i.*,
                         p.titre as titre_projet,
                         p.id_createur,
-                        creator.nom as nom_createur,
-                        creator.prenom as prenom_createur,
-                        investor.nom as nom_investisseur,
-                        investor.prenom as prenom_investisseur,
+                        c.full_name as nom_createur,
+                        u.full_name as nom_investisseur,
                         i.date_investissement as date_creation
                      FROM investissement i
                      JOIN projet p ON i.id_projet = p.id
-                     JOIN utilisateur creator ON p.id_createur = creator.id
-                     JOIN utilisateur investor ON i.id_investisseur = investor.id
+                     JOIN users c ON p.id_createur = c.id
+                     JOIN users u ON i.id_investisseur = u.id
                      ORDER BY i.date_investissement DESC";
             
             $stmt = $this->db->prepare($query);

@@ -11,6 +11,7 @@ class Projet {
     public $statut;
     public $id_createur;
     public $date_creation;
+    public $categorie;
 
     public function __construct($db) {
         $this->conn = $db;
@@ -19,8 +20,8 @@ class Projet {
     public function create() {
         try {
             $query = "INSERT INTO " . $this->table . " 
-                    (titre, description, montant, id_createur) 
-                    VALUES (:titre, :description, :montant, :id_createur)";
+                    (titre, description, montant, id_createur, categorie) 
+                    VALUES (:titre, :description, :montant, :id_createur, :categorie)";
             
             $stmt = $this->conn->prepare($query);
             
@@ -28,6 +29,7 @@ class Projet {
             $stmt->bindParam(":description", $this->description);
             $stmt->bindParam(":montant", $this->montant_cible);
             $stmt->bindParam(":id_createur", $this->id_createur);
+            $stmt->bindParam(":categorie", $this->categorie);
             
             return $stmt->execute();
         } catch (PDOException $e) {

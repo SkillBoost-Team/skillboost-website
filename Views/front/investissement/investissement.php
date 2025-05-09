@@ -9,7 +9,7 @@ require_once __DIR__ . '/../../../controllers/investissementControllers.php';
 session_start();
 
 // Set the user ID and role here for testing. Change these values to simulate different users.
-$_SESSION['user_id'] = 5;// Change this number to simulate a different user
+$_SESSION['user_id'] = 2;// Change this number to simulate a different user
 $_SESSION['role'] = 'createur'; // Set the role to 'createur' for testing
 
 $db = Database::getInstance()->getConnection();
@@ -89,6 +89,59 @@ if ($is_creator) {
 } else {
     $mes_projets = [];
 }
+
+// Récupérer les projets favoris depuis la session
+$favoris = isset($_SESSION['favoris']) ? $_SESSION['favoris'] : [];
+$projets_favoris = [];
+if (!empty($favoris)) {
+    $placeholders = implode(',', array_fill(0, count($favoris), '?'));
+    $stmt = $db->prepare("SELECT * FROM projet WHERE id IN ($placeholders)");
+    $stmt->execute($favoris);
+    $projets_favoris = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Récupérer les gains des investissements
+$gains_investissements = $controller->getGainsInvestissements($id_user);
+
+// Regrouper les investissements par projet pour l'affichage global
+$gains_par_projet = [];
+foreach ($gains_investissements as $inv) {
+    $id_projet = $inv['id_projet'];
+    if (!isset($gains_par_projet[$id_projet])) {
+        $gains_par_projet[$id_projet] = [
+            'titre_projet' => $inv['titre_projet'],
+            'montant_objectif' => $inv['montant_objectif'],
+            'montant_investi' => 0,
+            'pourcentage' => 0,
+            'revenus' => [],
+        ];
+    }
+    $gains_par_projet[$id_projet]['montant_investi'] += $inv['montant_investi'];
+    $gains_par_projet[$id_projet]['pourcentage'] += $inv['pourcentage'];
+    // Fusionner les revenus par date
+    foreach ($inv['revenus'] as $rev) {
+        $date = $rev['date_revenu'];
+        if (!isset($gains_par_projet[$id_projet]['revenus'][$date])) {
+            $gains_par_projet[$id_projet]['revenus'][$date] = [
+                'gain_mensuel' => 0,
+                'gains_cumules' => 0,
+            ];
+        }
+        $gains_par_projet[$id_projet]['revenus'][$date]['gain_mensuel'] += $rev['gain_mensuel'];
+        // On recalculera les gains cumulés après
+    }
+}
+// Recalculer les gains cumulés pour chaque projet
+foreach ($gains_par_projet as &$projet) {
+    ksort($projet['revenus']);
+    $cumul = 0;
+    foreach ($projet['revenus'] as &$rev) {
+        $cumul += $rev['gain_mensuel'];
+        $rev['gains_cumules'] = $cumul;
+    }
+    unset($rev);
+}
+unset($projet);
 ?>
 
 <!DOCTYPE html>
@@ -122,6 +175,125 @@ if ($is_creator) {
 
     <!-- Template Stylesheet -->
     <link href="../css/style.css" rel="stylesheet">
+
+    <style>
+    /* Favoris - étoile sur carte projet */
+    .btn-favori {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0.25rem 0.5rem;
+        font-size: 1.3rem;
+        z-index: 2;
+        transition: color 0.2s;
+    }
+    .btn-favori .fa-star,
+    .btn-favori .fa-star-o {
+        transition: color 0.2s;
+    }
+    .btn-favori:hover .fa-star,
+    .btn-favori:hover .fa-star-o {
+        color: #ffc107 !important;
+    }
+    .btn-favori.selected .fa-star {
+        color: #ffc107 !important;
+    }
+    .btn-favori:focus {
+        outline: none;
+        box-shadow: none;
+    }
+    /* Favoris - bouton poubelle dans le modal */
+    .btn-remove-favori {
+        background: #fff;
+        border: none;
+        color: #dc3545;
+        padding: 0.35rem 0.6rem;
+        font-size: 1.15rem;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        position: absolute;
+        top: 14px;
+        right: 18px;
+        z-index: 2;
+        outline: none;
+    }
+    .btn-remove-favori:hover {
+        background: #dc3545;
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(220,53,69,0.18);
+    }
+    /* Favoris - carte projet dans le modal */
+    .favori-card {
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+        transition: box-shadow 0.25s, transform 0.18s, opacity 0.3s;
+        cursor: pointer;
+        border: none;
+        background: #fff;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        justify-content: stretch;
+        position: relative;
+        margin-bottom: 1.5rem;
+        opacity: 1;
+    }
+    .favori-card.removing {
+        opacity: 0;
+        transform: scale(0.97) translateY(10px);
+        transition: opacity 0.3s, transform 0.3s;
+    }
+    .favori-card:hover {
+        box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+        transform: translateY(-3px) scale(1.012);
+    }
+    .favori-card .card-header {
+        border-radius: 18px 18px 0 0;
+        background: linear-gradient(90deg, #0099e6 60%, #00c6fb 100%);
+        color: #fff;
+        position: relative;
+        padding: 1rem 2.5rem 1rem 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .favori-card .card-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-bottom: 0;
+        letter-spacing: 0.01em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .favori-card .fa-star {
+        color: #ffc107;
+        font-size: 1.2rem;
+        margin-left: 0.5rem;
+    }
+    .favori-card .badge-favori {
+        background: #ffc107;
+        color: #222;
+        font-size: 0.85rem;
+        border-radius: 8px;
+        padding: 0.2em 0.7em;
+        margin-left: 0.7em;
+        font-weight: 600;
+    }
+    .favori-card .card-body {
+        padding: 1.1rem 1.2rem 1rem 1.2rem;
+        flex: 1 1 auto;
+        font-size: 1.01rem;
+    }
+    @media (max-width: 900px) {
+        .favori-card {
+            min-width: 100%;
+            margin-bottom: 1.2rem;
+        }
+    }
+    </style>
 </head>
 
 <body>
@@ -319,6 +491,9 @@ if ($is_creator) {
                 <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#historiqueModal">
                     <i class="fas fa-history me-2"></i>Voir mes investissements
                 </button>
+                <button type="button" class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#favorisModal">
+                    <i class="fas fa-star me-2"></i>Projets favoris
+                </button>
                 <?php if ($is_creator): ?>
                 <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#mesProjetsModal">
                     <i class="fas fa-project-diagram me-2"></i>Gérer mes projets
@@ -385,90 +560,27 @@ if ($is_creator) {
 
                             <!-- Section des graphiques pour les projets complétés -->
                             <?php
-                            $gains_investissements = $controller->getGainsInvestissements($id_user);
-                            if (!empty($gains_investissements)):
+                            if (!empty($gains_par_projet)):
                             ?>
-                            <!-- Résumé des gains totaux -->
-                            <div class="card mb-4">
-                                <div class="card-body">
-                                    <h5 class="card-title">Résumé de vos investissements</h5>
-                                    <?php
-                                    $total_investi = 0;
+                            <div class="row">
+                                <?php foreach ($gains_par_projet as $id_projet => $projet):
+                                    $total_investi = $projet['montant_investi'];
                                     $total_gains_mensuels = 0;
                                     $total_gains_cumules = 0;
-                                    
-                                    foreach ($gains_investissements as $inv) {
-                                        $total_investi += $inv['montant_investi'];
-                                        if (isset($inv['revenus'])) {
-                                            foreach ($inv['revenus'] as $rev) {
-                                                $total_gains_mensuels += $rev['gain_mensuel'];
-                                                $total_gains_cumules = $rev['gains_cumules'];
-                                            }
-                                        }
+                                    foreach ($projet['revenus'] as $rev) {
+                                        $total_gains_mensuels += $rev['gain_mensuel'];
+                                        $total_gains_cumules = $rev['gains_cumules'];
                                     }
-                                    
                                     $roi = $total_investi > 0 ? (($total_gains_cumules - $total_investi) / $total_investi) * 100 : 0;
                                     $roi_class = $roi >= 0 ? 'text-success' : 'text-danger';
-                                    ?>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="card bg-light mb-3">
-                                                <div class="card-body">
-                                                    <h6 class="card-subtitle mb-2 text-muted">Total investi</h6>
-                                                    <h4 class="card-title"><?php echo number_format($total_investi, 2); ?> DT</h4>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="card bg-light mb-3">
-                                                <div class="card-body">
-                                                    <h6 class="card-subtitle mb-2 text-muted">Gains cumulés</h6>
-                                                    <h4 class="card-title"><?php echo number_format($total_gains_cumules, 2); ?> DT</h4>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="card bg-light mb-3">
-                                                <div class="card-body">
-                                                    <h6 class="card-subtitle mb-2 text-muted">Retour sur investissement</h6>
-                                                    <h4 class="card-title <?php echo $roi_class; ?>">
-                                                        <?php echo number_format($roi, 2); ?>%
-                                                        <small class="text-muted">(<?php echo number_format($total_gains_cumules - $total_investi, 2); ?> DT)</small>
-                                                    </h4>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <h6 class="mb-3">Évolution des gains pour les projets complétés</h6>
-                            <div class="row">
-                                <?php foreach ($gains_investissements as $inv): ?>
+                                ?>
                                 <div class="col-md-6 mb-4">
                                     <div class="card">
                                         <div class="card-body">
-                                            <h6 class="card-title"><?php echo htmlspecialchars($inv['titre_projet']); ?></h6>
+                                            <h6 class="card-title"><?php echo htmlspecialchars($projet['titre_projet']); ?></h6>
                                             <p class="small text-muted">
-                                                Investissement: <?php echo number_format($inv['montant_investi'], 2); ?> DT (<?php echo $inv['pourcentage']; ?>%)
+                                                Investissement total: <?php echo number_format($total_investi, 2); ?> DT (<?php echo $projet['pourcentage']; ?>%)
                                             </p>
-                                            
-                                            <!-- Résumé des gains pour cet investissement -->
-                                            <?php
-                                            $gains_mensuels_total = 0;
-                                            $gains_cumules_final = 0;
-                                            
-                                            if (isset($inv['revenus'])) {
-                                                foreach ($inv['revenus'] as $rev) {
-                                                    $gains_mensuels_total += $rev['gain_mensuel'];
-                                                    $gains_cumules_final = $rev['gains_cumules'];
-                                                }
-                                            }
-                                            
-                                            $roi_investissement = $inv['montant_investi'] > 0 ? 
-                                                (($gains_cumules_final - $inv['montant_investi']) / $inv['montant_investi']) * 100 : 0;
-                                            $roi_class = $roi_investissement >= 0 ? 'text-success' : 'text-danger';
-                                            ?>
                                             <div class="row mb-3 justify-content-center gy-2 gx-3 flex-wrap">
                                                 <div class="col-6 col-md-3">
                                                     <div class="card text-center shadow-sm border-0 h-100">
@@ -477,7 +589,7 @@ if ($is_creator) {
                                                                 <i class="fas fa-coins fa-lg text-warning"></i>
                                                             </div>
                                                             <div class="fw-bold fs-5 text-dark">
-                                                                <?php echo number_format($gains_mensuels_total, 2); ?> DT
+                                                                <?php echo number_format($total_gains_mensuels, 2); ?> DT
                                                             </div>
                                                             <div class="small text-muted">Gains mensuels totaux</div>
                                                         </div>
@@ -490,7 +602,7 @@ if ($is_creator) {
                                                                 <i class="fas fa-chart-line fa-lg text-primary"></i>
                                                             </div>
                                                             <div class="fw-bold fs-5 text-dark">
-                                                                <?php echo number_format($gains_cumules_final, 2); ?> DT
+                                                                <?php echo number_format($total_gains_cumules, 2); ?> DT
                                                             </div>
                                                             <div class="small text-muted">Gains cumulés</div>
                                                         </div>
@@ -503,7 +615,7 @@ if ($is_creator) {
                                                                 <i class="fas fa-percentage fa-lg <?php echo $roi_class; ?>"></i>
                                                             </div>
                                                             <div class="fw-bold fs-5 <?php echo $roi_class; ?>">
-                                                                <?php echo number_format($roi_investissement, 2); ?>%
+                                                                <?php echo number_format($roi, 2); ?>%
                                                             </div>
                                                             <div class="small text-muted">ROI</div>
                                                         </div>
@@ -516,29 +628,28 @@ if ($is_creator) {
                                                                 <i class="fas fa-balance-scale fa-lg <?php echo $roi_class; ?>"></i>
                                                             </div>
                                                             <div class="fw-bold fs-5 <?php echo $roi_class; ?>">
-                                                                <?php echo number_format($gains_cumules_final - $inv['montant_investi'], 2); ?> DT
+                                                                <?php echo number_format($total_gains_cumules - $total_investi, 2); ?> DT
                                                             </div>
                                                             <div class="small text-muted">Gain/Perte net</div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-
                                             <div class="alert alert-info mb-3">
                                                 <h6 class="alert-heading">Explication des gains :</h6>
                                                 <ul class="mb-0">
-                                                    <li><strong>Gains mensuels</strong> : Montant gagné chaque mois (Revenu mensuel × <?php echo $inv['pourcentage']; ?>%)</li>
+                                                    <li><strong>Gains mensuels</strong> : Somme des montants gagnés chaque mois (tous investissements confondus)</li>
                                                     <li><strong>Gains cumulés</strong> : Somme totale des gains depuis le début de l'investissement</li>
                                                 </ul>
                                             </div>
                                             <div class="d-flex justify-content-end mb-2">
-                                                <button class="btn btn-sm btn-primary reset-zoom" data-chart-id="gainChart<?php echo $inv['investissement_id']; ?>">
+                                                <button class="btn btn-sm btn-primary reset-zoom" data-chart-id="gainChartProjet<?php echo $id_projet; ?>">
                                                     <i class="fas fa-sync-alt me-1"></i> Réinitialiser la vue
                                                 </button>
                                             </div>
                                             <div class="chart-container">
                                                 <div class="chart-wrapper">
-                                                    <canvas id="gainChart<?php echo $inv['investissement_id']; ?>"></canvas>
+                                                    <canvas id="gainChartProjet<?php echo $id_projet; ?>"></canvas>
                                                 </div>
                                             </div>
                                         </div>
@@ -665,7 +776,7 @@ if ($is_creator) {
                                                                         ?>
                                                                         <tr>
                                                                             <td>
-                                                                                <?php echo htmlspecialchars($inv['prenom_investisseur'] . ' ' . $inv['nom_investisseur']); ?>
+                                                                                <?php echo htmlspecialchars($inv['nom_investisseur']); ?>
                                                                             </td>
                                                                             <td><?php echo number_format($inv['montant'], 2); ?> DT</td>
                                                                             <td><?php echo $inv['pourcentage']; ?>%</td>
@@ -776,12 +887,65 @@ if ($is_creator) {
                 </div>
             </div>
 
+            <!-- Modal pour les favoris -->
+            <div class="modal fade" id="favorisModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Mes projets favoris</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <?php if (!empty($projets_favoris)): ?>
+                                <div class="row">
+                                    <?php foreach ($projets_favoris as $projet): ?>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card favori-card" id="favori-card-<?php echo $projet['id']; ?>">
+                                                <button type="button"
+                                                    class="btn btn-remove-favori"
+                                                    title="Retirer des favoris"
+                                                    onclick="removeFavoriWithFade(<?php echo $projet['id']; ?>)">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                                <div class="card-header">
+                                                    <span class="card-title">
+                                                        <?php echo htmlspecialchars($projet['titre']); ?>
+                                                        <i class="fas fa-star"></i>
+                                                        <span class="badge-favori">Favori</span>
+                                                    </span>
+                                                </div>
+                                                <div class="card-body">
+                                                    <p class="card-text text-muted mb-3">
+                                                        <?php echo htmlspecialchars($projet['description']); ?>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info">Aucun projet favori pour le moment.</div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Affichage des projets avec pagination -->
             <div class="row g-5 mb-5">
                 <?php if (!empty($projets_page)): ?>
                     <?php foreach ($projets_page as $projet): ?>
+                        <?php $is_favori = in_array($projet['id'], $favoris); ?>
                         <div class="col-lg-4 col-md-6">
-                            <div class="card h-100 shadow-sm hover-shadow">
+                            <div class="card h-100 shadow-sm hover-shadow position-relative">
+                                <!-- Bouton favori -->
+                                <button type="button"
+                                    class="btn btn-favori position-absolute top-0 end-0 m-2 <?php echo $is_favori ? 'selected' : ''; ?>"
+                                    title="<?php echo $is_favori ? 'Retirer des favoris' : 'Ajouter aux favoris'; ?>"
+                                    data-favori-id="<?php echo $projet['id']; ?>"
+                                    onclick="<?php echo $is_favori ? "removeFavoriWithFade({$projet['id']})" : "addToFavoris({$projet['id']})"; ?>">
+                                    <i class="<?php echo $is_favori ? 'fas fa-star' : 'far fa-star'; ?>"></i>
+                                </button>
                                 <div class="card-header bg-primary text-white">
                                     <h5 class="card-title mb-0"><?php echo htmlspecialchars($projet['titre']); ?></h5>
                                 </div>
@@ -794,7 +958,7 @@ if ($is_creator) {
                                         <div class="d-flex align-items-center mb-2">
                                             <i class="fas fa-user-tie text-primary me-2"></i>
                                             <small class="text-muted">
-                                                Créé par: <?php echo htmlspecialchars($projet['prenom_createur'] . ' ' . $projet['nom_createur']); ?>
+                                                Créé par: <?php echo htmlspecialchars($projet['nom_createur']); ?>
                                             </small>
                                         </div>
                                     </div>
@@ -1227,39 +1391,53 @@ if ($is_creator) {
     <!-- Script pour initialiser les graphiques -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Données des gains pour les graphiques
-        const gainsData = <?php echo json_encode($gains_investissements); ?>;
-        
-        // Créer un graphique pour chaque investissement
-        gainsData.forEach(inv => {
-            if (!inv.revenus || inv.revenus.length === 0) return;
+        // Données des gains pour les graphiques (par projet)
+        const gainsDataProjet = <?php
+            $js_gains = [];
+            foreach ($gains_par_projet as $id_projet => $projet) {
+                // Ordonner les revenus par date et transformer en tableau indexé
+                $dates = array_keys($projet['revenus']);
+                sort($dates);
+                $labels = [];
+                $gainsMensuels = [];
+                $gainsCumules = [];
+                foreach ($dates as $date) {
+                    $labels[] = $date;
+                    $gainsMensuels[] = $projet['revenus'][$date]['gain_mensuel'];
+                    $gainsCumules[] = $projet['revenus'][$date]['gains_cumules'];
+                }
+                $js_gains[] = [
+                    'id_projet' => $id_projet,
+                    'labels' => $labels,
+                    'gainsMensuels' => $gainsMensuels,
+                    'gainsCumules' => $gainsCumules,
+                ];
+            }
+            echo json_encode($js_gains);
+        ?>;
 
-            const ctx = document.getElementById(`gainChart${inv.investissement_id}`).getContext('2d');
-            
-            // Préparer les données pour le graphique
-            const labels = inv.revenus.map(rev => {
-                const date = new Date(rev.date_revenu);
-                return date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
-            });
-            
-            const gainsMensuels = inv.revenus.map(rev => rev.gain_mensuel);
-            const gainsCumules = inv.revenus.map(rev => rev.gains_cumules);
-
+        // Créer un graphique pour chaque projet
+        gainsDataProjet.forEach(proj => {
+            if (!proj.labels.length) return;
+            const ctx = document.getElementById(`gainChartProjet${proj.id_projet}`).getContext('2d');
             const chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: proj.labels.map(date => {
+                        const d = new Date(date);
+                        return d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+                    }),
                     datasets: [
                         {
                             label: 'Gains mensuels',
-                            data: gainsMensuels,
+                            data: proj.gainsMensuels,
                             borderColor: 'rgb(75, 192, 192)',
                             tension: 0.1,
                             yAxisID: 'y'
                         },
                         {
                             label: 'Gains cumulés',
-                            data: gainsCumules,
+                            data: proj.gainsCumules,
                             borderColor: 'rgb(153, 102, 255)',
                             tension: 0.1,
                             yAxisID: 'y1'
@@ -1357,33 +1535,77 @@ if ($is_creator) {
                     }
                 }
             });
-
-            // Stocker le graphique dans un objet global pour y accéder plus tard
-            window[`chart_${inv.investissement_id}`] = chart;
+            window[`chart_projet_${proj.id_projet}`] = chart;
         });
 
         // Gestionnaire d'événements pour les boutons de réinitialisation
         document.querySelectorAll('.reset-zoom').forEach(button => {
             button.addEventListener('click', function() {
                 const chartId = this.getAttribute('data-chart-id');
-                const chart = window[`chart_${chartId.replace('gainChart', '')}`];
-                
+                const chart = window[`chart_projet_${chartId.replace('gainChartProjet', '')}`];
                 if (chart) {
-                    // Réinitialiser le zoom et le panoramique
                     chart.resetZoom();
-                    
-                    // Ajuster automatiquement l'échelle pour une meilleure vue
                     chart.options.scales.y.min = undefined;
                     chart.options.scales.y.max = undefined;
                     chart.options.scales.y1.min = undefined;
                     chart.options.scales.y1.max = undefined;
-                    
-                    // Mettre à jour le graphique
                     chart.update();
                 }
             });
         });
     });
+    </script>
+
+    <!-- Ajouter le script JS pour gérer l'ajout aux favoris -->
+    <script>
+    function addToFavoris(idProjet) {
+        fetch('add_favori.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_projet: idProjet })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Erreur lors de l\'ajout aux favoris');
+            }
+        })
+        .catch(() => alert('Erreur lors de l\'ajout aux favoris'));
+    }
+
+    function removeFavoriWithFade(idProjet) {
+        fetch('remove_favori.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_projet: idProjet })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const card = document.querySelector(`#favori-card-${idProjet}`);
+                if (card) {
+                    card.classList.add('removing');
+                    setTimeout(() => card.remove(), 320);
+                }
+                // Mettre à jour l'icône étoile du projet dans la liste principale
+                const starBtn = document.querySelector(`button[data-favori-id='${idProjet}']`);
+                if (starBtn) {
+                    starBtn.title = 'Ajouter aux favoris';
+                    starBtn.onclick = function() { addToFavoris(idProjet); };
+                    const icon = starBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'far fa-star';
+                        icon.classList.remove('text-warning');
+                    }
+                }
+            } else {
+                alert(data.message || "Erreur lors de la suppression du favori");
+            }
+        })
+        .catch(() => alert("Erreur lors de la suppression du favori"));
+    }
     </script>
 
 </body>

@@ -1,7 +1,7 @@
 <?php
 class Database {
     private $host = "localhost";
-    private $db_name = "impacto";
+    private $db_name = "skillboost";
     private $username = "root";
     private $password = "";
     private static $instance = null;
@@ -61,5 +61,24 @@ class Database {
 
     public function __destruct() {
         $this->conn = null;
+    }
+
+    // Like a project
+    public function likeProject($user_id, $project_id) {
+        $stmt = $this->conn->prepare("INSERT IGNORE INTO project_likes (user_id, project_id) VALUES (?, ?)");
+        return $stmt->execute([$user_id, $project_id]);
+    }
+
+    // Unlike a project
+    public function unlikeProject($user_id, $project_id) {
+        $stmt = $this->conn->prepare("DELETE FROM project_likes WHERE user_id = ? AND project_id = ?");
+        return $stmt->execute([$user_id, $project_id]);
+    }
+
+    // Get liked project IDs for a user
+    public function getLikedProjectIds($user_id) {
+        $stmt = $this->conn->prepare("SELECT project_id FROM project_likes WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 }

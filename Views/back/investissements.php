@@ -119,7 +119,7 @@ $revenus_projets = isset($data['revenus_projets']) ? $data['revenus_projets'] : 
                                     <tr>
                                         <td><?php echo $investissement['id']; ?></td>
                                         <td><?php echo htmlspecialchars($investissement['titre_projet']); ?></td>
-                                        <td><?php echo htmlspecialchars($investissement['prenom_investisseur'] . ' ' . $investissement['nom_investisseur']); ?></td>
+                                        <td><?php echo htmlspecialchars($investissement['nom_investisseur']); ?></td>
                                         <td><?php echo number_format($investissement['montant'], 2); ?> €</td>
                                         <td><?php echo $investissement['pourcentage']; ?>%</td>
                                         <td><?php echo date('d/m/Y H:i', strtotime($investissement['date_creation'])); ?></td>
