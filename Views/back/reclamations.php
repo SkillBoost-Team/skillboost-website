@@ -416,7 +416,7 @@ if (!file_exists($exportDir)) {
         </div>
         <div class="sidebar-menu">
             <a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
-            <a href="admin-users.html"><i class="fas fa-users"></i> Utilisateurs</a>
+            <a href="login.php"><i class="fas fa-users"></i> Utilisateurs</a>
             <a href="admin-projects.html"><i class="fas fa-project-diagram"></i> Projets</a>
             <a href="admin-formations.html"><i class="fas fa-graduation-cap"></i> Formations</a>
             <a href="admin-events.html"><i class="fas fa-calendar-alt"></i> Événements</a>

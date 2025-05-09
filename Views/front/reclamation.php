@@ -761,27 +761,17 @@ select + .voice-btn {
             </button>
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <div class="navbar-nav ms-auto py-0">
-                    <a href="index.php" class="nav-item nav-link">
-                        <i class="fas fa-home"></i> <?= $lang === 'en' ? 'Home' : ($lang === 'es' ? 'Inicio' : ($lang === 'ar' ? 'الرئيسية' : 'Accueil')) ?>
-                    </a>
-                    <a href="login.php" class="nav-item nav-link">
-                        <i class="fas fa-sign-in-alt"></i> <?= $lang === 'en' ? 'Login' : ($lang === 'es' ? 'Iniciar sesión' : ($lang === 'ar' ? 'تسجيل الدخول' : 'Connexion')) ?>
-                    </a>
-                    <a href="#" class="nav-item nav-link">
-                        <i class="fas fa-project-diagram"></i> <?= $lang === 'en' ? 'Projects' : ($lang === 'es' ? 'Proyectos' : ($lang === 'ar' ? 'المشاريع' : 'Projets')) ?>
-                    </a>
-                    <a href="Formations.php" class="nav-item nav-link">
-                        <i class="fas fa-graduation-cap"></i> <?= $lang === 'en' ? 'Trainings' : ($lang === 'es' ? 'Formaciones' : ($lang === 'ar' ? 'التدريبات' : 'Formations')) ?>
-                    </a>
-                    <a href="evenements.php" class="nav-item nav-link">
-                        <i class="fas fa-calendar-alt"></i> <?= $lang === 'en' ? 'Events' : ($lang === 'es' ? 'Eventos' : ($lang === 'ar' ? 'الفعاليات' : 'Événements')) ?>
-                    </a>
-                    <a href="gestionInvestissement.php" class="nav-item nav-link">
-                        <i class="fas fa-chart-line"></i> <?= $lang === 'en' ? 'Investments' : ($lang === 'es' ? 'Inversiones' : ($lang === 'ar' ? 'الاستثمارات' : 'Investissements')) ?>
-                    </a>
-                    <a href="reclamations.php" class="nav-item nav-link active">
-                        <i class="fas fa-exclamation-circle"></i> <?= $lang === 'en' ? 'Complaints' : ($lang === 'es' ? 'Reclamaciones' : ($lang === 'ar' ? 'الشكاوى' : 'Réclamations')) ?>
-                    </a>
+                    <a href="index.php" class="nav-item nav-link">Accueil</a>
+                    <?php if (isset($_SESSION['user'])): ?>
+                        <a href="logout.php" class="nav-item nav-link">Déconnexion</a>
+                    <?php else: ?>
+                        <a href="login.php" class="nav-item nav-link">Connexion</a>
+                    <?php endif; ?>
+                    <a href="#" class="nav-item nav-link">Projets</a>
+                    <a href="Formations.php" class="nav-item nav-link">Formations</a>
+                    <a href="evenements.php" class="nav-item nav-link">Événements</a>
+                    <a href="gestionInvestissement.php" class="nav-item nav-link">Investissements</a>
+                    <a href="reclamation.php" class="nav-item nav-link active">Réclamations</a>
                 </div>
             </div>
         </nav>
