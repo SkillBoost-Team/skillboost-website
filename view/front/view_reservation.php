@@ -3,199 +3,128 @@ require_once '../../controller/reservationcontroller.php';
 require_once '../../model/reservation.php';
 
 $controller = new ReservationController();
-
-// Récupérer l'id de la réservation depuis l'URL
-$id_reservation = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($id_reservation > 0) {
-    $reservation = $controller->getReservationById($id_reservation);
-} else {
-    header("Location: reservation.php");
-    exit();
-}
-
-if (!$reservation) {
-    header("Location: reservation.php");
-    exit();
-}
+$reservations = $controller->getAllReservations(); // Assuming you have this method in your controller
 ?>
 
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Détails de la réservation</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <title>Liste des réservations</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css ">
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f9;
-        }
-        /* Topbar styles */
-        .topbar {
-            background-color: #1a2a3a;
-            color: white;
-            padding: 10px 0;
-            font-size: 14px;
-        }
-        .topbar-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-        }
-        .topbar-info {
-            display: flex;
-            gap: 20px;
-        }
-        .topbar-info i {
-            margin-right: 5px;
-            color: #4CAF50;
-        }
-        .admin-space {
-            display: flex;
-            align-items: center;
-        }
-        .admin-space i {
-            margin-right: 5px;
-        }
-        /* Main content styles */
-        .main-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        /* Table styles */
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 30px 0;
-        }
-        th, td { 
-            border: 1px solid #ccc; 
-            padding: 12px; 
-            text-align: center; 
-        }
-        th { 
-            background-color: #f2f2f2; 
-            font-weight: bold;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        /* Footer styles */
-        .footer {
-            background-color: #1a2a3a;
-            color: white;
-            padding: 40px 0 20px;
-        }
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-        }
-        .footer-contact {
-            flex: 1;
-            min-width: 300px;
-        }
-        .footer-contact h3 {
-            margin-bottom: 20px;
-            font-size: 18px;
-        }
-        .footer-contact p {
-            margin: 5px 0;
-            display: flex;
-            align-items: center;
-        }
-        .footer-contact i {
-            margin-right: 10px;
-            color: #4CAF50;
-        }
-        .copyright {
-            background-color: #061429;
-            color: white;
-            text-align: center;
-            padding: 15px 0;
-            font-size: 14px;
-        }
-        .back-link {
-            display: inline-block;
+        /* Existing styles here */
+        table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 20px;
-            color: #4CAF50;
-            text-decoration: none;
-            font-weight: bold;
         }
-        .back-link:hover {
-            text-decoration: underline;
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .action-button {
+            padding: 5px 10px;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        .edit-button {
+            background-color: #2196F3;
+        }
+        .edit-button:hover {
+            background-color: #0b7dda;
+        }
+        .delete-button {
+            background-color: #f44336;
+        }
+        .delete-button:hover {
+            background-color: #d32f2f;
         }
     </style>
 </head>
 <body>
-<!-- Topbar -->
-<div class="topbar">
-    <div class="topbar-container">
-        <div class="topbar-info">
-            <span><i class="fas fa-map-marker-alt"></i> Bloc E, Esprit, Cite La Gazelle</span>
-            <span><i class="fas fa-phone-alt"></i> +216 90 044 054</span>
-            <span><i class="fas fa-envelope"></i> SkillBoost@gmail.com</span>
-        </div>
-        <div class="admin-space">
-            <i class="fas fa-user-shield"></i>
-            <span>Espace Administrateur</span>
-        </div>
-    </div>
-</div>
-<!-- Main Content -->
-<div class="main-container">
-    <h1><i class="fas fa-ticket-alt"></i> Détails de la réservation</h1>
-    <table>
-        <thead>
-        <tr>
-            <th>ID Événement</th>
-            <th>ID Utilisateur</th>
-            <th>Date Inscription</th>
-            <th>Nombre Places</th>
-            <th>Statut Inscription</th>
-            <th>Méthode Paiement</th>
-            <th>Montant Payé</th>
-            <th>ID Réservation</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td><?= htmlspecialchars($reservation['idevenement']) ?></td>
-            <td><?= htmlspecialchars($reservation['id_utilisateur']) ?></td>
-            <td><?= htmlspecialchars($reservation['date_inscription']) ?></td>
-            <td><?= htmlspecialchars($reservation['nombre_places']) ?></td>
-            <td><?= htmlspecialchars($reservation['statut_inscription']) ?></td>
-            <td><?= htmlspecialchars($reservation['methode_paiement']) ?></td>
-            <td><?= htmlspecialchars($reservation['montant_paye']) ?></td>
-            <td><?= htmlspecialchars($reservation['id_reservation']) ?></td>
-        </tr>
-        </tbody>
-    </table>
-    <a href="reservation.php" class="back-link"><i class="fas fa-arrow-left"></i> Retour à la gestion des réservations</a>
-</div>
-<!-- Footer -->
-<footer class="footer">
-    <div class="footer-container">
-        <div class="footer-contact">
-            <h3>Contact</h3>
-            <p><i class="fas fa-map-marker-alt"></i> 123 Rue Tunis, Tunisie, TN</p>
-            <p><i class="fas fa-envelope"></i> SkillBoost@gmail.com</p>
-            <p><i class="fas fa-phone-alt"></i> +216 90 044 054</p>
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-container">
+            <div class="topbar-info">
+                <span><i class="fas fa-map-marker-alt"></i> Bloc E, Esprit, Cite La Gazelle</span>
+                <span><i class="fas fa-phone-alt"></i> +216 90 044 054</span>
+                <span><i class="fas fa-envelope"></i> SkillBoost@gmail.com</span>
+            </div>
+            <div class="admin-space">
+                <i class="fas fa-user-shield"></i>
+                <span>Espace Administrateur</span>
+            </div>
         </div>
     </div>
-</footer>
-<div class="copyright">
-    <p>&copy; SkillBoost. All Rights Reserved.</p>
-</div>
+    <!-- Main Content -->
+    <div class="main-container">
+        <h1><i class="fas fa-ticket-alt"></i> Gestion des Réservations</h1>
+        <h2>Liste des réservations</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID Réservation</th>
+                    <th>ID Événement</th>
+                    <th>ID Utilisateur</th>
+                    <th>Date Inscription</th>
+                    <th>Nombre Places</th>
+                    <th>Statut Inscription</th>
+                    <th>Méthode Paiement</th>
+                    <th>Montant Payé</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($reservations as $reservation): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($reservation->getIdReservation()); ?></td>
+                        <td><?php echo htmlspecialchars($reservation->getIdEvenement()); ?></td>
+                        <td><?php echo htmlspecialchars($reservation->getIdUtilisateur()); ?></td>
+                        <td><?php echo htmlspecialchars($reservation->getDateInscription()); ?></td>
+                        <td><?php echo htmlspecialchars($reservation->getNombrePlaces()); ?></td>
+                        <td><?php echo htmlspecialchars($reservation->getStatutInscription()); ?></td>
+                        <td><?php echo htmlspecialchars($reservation->getMethodePaiement()); ?></td>
+                        <td><?php echo htmlspecialchars($reservation->getMontantPaye()); ?></td>
+                        <!-- Bouton Modifier -->
+    <a href="update_reservation.php" class="consult-button" style="background-color: #1976d2;">
+        <i class="fas fa-edit"></i> Modifier une réservation
+    </a>
+    <!-- Bouton Supprimer -->
+    <a href="delate_reservation.php" class="consult-button" style="background-color: #d32f2f;">
+        <i class="fas fa-trash-alt"></i> Supprimer une réservation
+    </a>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <a href="ajout_reservation.php" class="consult-button">
+            <i class="fas fa-plus"></i> Ajouter une réservation
+        </a>
+    </div>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-contact">
+                <h3>Contact</h3>
+                <p><i class="fas fa-map-marker-alt"></i> 123 Rue Tunis, Tunisie, TN</p>
+                <p><i class="fas fa-envelope"></i> SkillBoost@gmail.com</p>
+                <p><i class="fas fa-phone-alt"></i> +216 90 044 054</p>
+            </div>
+        </div>
+    </footer>
+    <div class="copyright">
+        <p>&copy; SkillBoost. All Rights Reserved.</p>
+    </div>
 </body>
 </html>

@@ -1,48 +1,36 @@
 <?php
-require_once '../../controller/reservationcontroller.php';
-require_once '../../model/reservation.php';
-$controller = new ReservationController();
-$message = '';
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    // Vérification des champs
-    $idevenement = intval(trim($_POST['idevenement']));
-    $id_utilisateur = intval(trim($_POST['id_utilisateur']));
-    $date_inscription = $_POST['date_inscription'];
-    $nombre_places = intval(trim($_POST['nombre_places']));
-    $statut_inscription = trim($_POST['statut_inscription']);
-    $methode_paiement = trim($_POST['methode_paiement']);
-    $montant_paye = floatval(trim($_POST['montant_paye']));
-    $id_reservation = intval(trim($_POST['id_reservation']));
-    if (
-        $idevenement > 0 &&
-        $id_utilisateur > 0 &&
-        !empty($date_inscription) &&
-        $nombre_places > 0 &&
-        !empty($statut_inscription) &&
-        !empty($methode_paiement) &&
-        $montant_paye >= 0 &&
-        $id_reservation > 0
-    ) {
-        $reservation = new Reservation(
-            $idevenement, $id_utilisateur, $date_inscription, $nombre_places,
-            $statut_inscription, $methode_paiement, $montant_paye, $id_reservation
-        );
-        if ($controller->addReservation($reservation)) {
-            $message = "✅ Réservation ajoutée avec succès !";
-        } else {
-            $message = "❌ Erreur lors de l'ajout de la réservation.";
-        }
-    } else {
-        $message = "❗ Tous les champs sont obligatoires et doivent être correctement remplis.";
-    }
-}
+session_start();
+
+// Example: After verifying the user's credentials (e.g., from a database)
+$user_id = 123; // Replace with the actual user ID from your database
+$_SESSION['user_id'] = $user_id; // Store the user ID in the session
 ?>
+
+<?php 
+require_once '../../config.php';
+ $pdo = config::getConnexion();
+
+    // Requête SQL pour récupérer les événements
+    $query = "SELECT idevenement, titre FROM evenement";
+    $stmt = $pdo->query($query);
+
+    // Stocker les résultats dans un tableau
+    $events = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $events[] = [
+            'idevenement' => $row['idevenement'],
+            'titre' => $row['titre']
+        ];
+    }
+
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <title>Ajout d'une réservation</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css ">
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -214,26 +202,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <div class="main-container">
     <h1><i class="fas fa-ticket-alt"></i> Gestion des Réservations</h1>
     <h2>Ajouter une réservation</h2>
-    <?php if (!empty($message)): ?>
-        <div class="message <?= strpos($message, '❌') !== false ? 'error' : (strpos($message, '❗') !== false ? 'warning' : 'success'); ?>">
-            <?php 
-                if (strpos($message, '✅') !== false) {
-                    echo '<i class="fas fa-check-circle" style="color: green;"></i>';
-                } elseif (strpos($message, '❌') !== false) {
-                    echo '<i class="fas fa-times-circle" style="color: red;"></i>';
-                } elseif (strpos($message, '❗') !== false) {
-                    echo '<i class="fas fa-exclamation-triangle" style="color: orange;"></i>';
-                }
-                echo substr($message, 2); // Supprime les deux premiers caractères (✅, ❌, ❗)
-            ?>
-        </div>
-    <?php endif; ?>
-    <form name="postForm" method="POST" onsubmit="return validateForm()">
+    <form name="postForm" method="POST" onsubmit="return validateForm()" action="../../controller/reservationcontroller.php">
         <label>ID de l'événement :</label>
-        <input type="number" name="idevenement" id="idevenement">
+        <select name="idevenement" id="idevenement">
+            <option value="">-- Sélectionnez un événement --</option>
+            <?php foreach ($events as $event) {
+                echo '<option value="' . htmlspecialchars($event['idevenement']) . '">';
+                echo htmlspecialchars($event['titre']);
+                echo '</option>'; 
+            }?>
+        </select>
         <div id="idevenement-error" class="error-message"></div>
-        <label>ID de l'utilisateur :</label>
-        <input type="number" name="id_utilisateur" id="id_utilisateur">
+        <input type="hidden" name="id_utilisateur" id="id_utilisateur" value="<?php echo isset($_SESSION['user_id']) ? htmlspecialchars($_SESSION['user_id']) : ''; ?>">
         <div id="id_utilisateur-error" class="error-message"></div>
         <label>Date d'inscription :</label>
         <input type="date" name="date_inscription" id="date_inscription">
@@ -268,6 +248,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <!-- Bouton Consulter -->
     <a href="affichage_reservation.php" class="consult-button">
         <i class="fas fa-eye"></i> Consulter les réservations
+    </a>
+    <!-- Bouton Modifier -->
+    <a href="update_reservation.php" class="consult-button" style="background-color: #1976d2;">
+        <i class="fas fa-edit"></i> Modifier une réservation
+    </a>
+    <!-- Bouton Supprimer -->
+    <a href="delate_reservation.php" class="consult-button" style="background-color: #d32f2f;">
+        <i class="fas fa-trash-alt"></i> Supprimer une réservation
     </a>
 </div>
 <!-- Footer -->

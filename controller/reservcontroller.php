@@ -4,7 +4,7 @@ require_once '../../model/reservation.php';
 $controller = new ReservationController();
 $message = '';
 $reservations = $controller->listReservations();
-/*
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Vérification des champs
     $idevenement = intval(trim($_POST['idevenement']));
@@ -29,7 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $reservation = new Reservation(
             $idevenement, $id_utilisateur, $date_inscription, $nombre_places,
             $statut_inscription, $methode_paiement, $montant_paye, $id_reservation
-        );*/
+        );
         if ($controller->addReservation($reservation)) {
             $message = "✅ Réservation ajoutée avec succès !";
             $reservations = $controller->listReservations(); // Rafraîchir la liste

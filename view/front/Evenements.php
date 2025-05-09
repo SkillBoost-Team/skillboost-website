@@ -12,14 +12,41 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $type_evenement = $_POST['type_evenement'];
     $lieu_ou_lien = trim($_POST['lieu_ou_lien']);
     $statut = $_POST['statut'];
-    if (
-        !empty($titre) && strlen($titre) >= 4 && strlen($titre) <= 10 &&
-        !empty($description) && strlen($description) >= 7 &&
-        !empty($date_evenement) &&
-        !empty($type_evenement) &&
-        !empty($lieu_ou_lien) &&
-        !empty($statut)
-    ) {
+
+    // New validation rules
+    $errors = [];
+
+    if (empty($titre) || strlen($titre) < 4 || strlen($titre) > 10) {
+        $errors[] = "Le titre doit contenir entre 4 et 10 caractères.";
+    }
+
+    if (empty($description) || strlen($description) < 7) {
+        $errors[] = "La description doit contenir au moins 7 caractères.";
+    }
+
+    if (empty($date_evenement)) {
+        $errors[] = "La date de l'événement est obligatoire.";
+    } else {
+        $date_evenement_obj = DateTime::createFromFormat('Y-m-d', $date_evenement);
+        $today = new DateTime();
+        if ($date_evenement_obj < $today) {
+            $errors[] = "La date de l'événement ne peut pas être antérieure à aujourd'hui.";
+        }
+    }
+
+    if (empty($type_evenement)) {
+        $errors[] = "Le type d'événement est obligatoire.";
+    }
+
+    if (empty($lieu_ou_lien) || strlen($lieu_ou_lien) < 5) {
+        $errors[] = "Le lieu ou lien doit contenir au moins 5 caractères.";
+    }
+
+    if (empty($statut)) {
+        $errors[] = "Le statut est obligatoire.";
+    }
+
+    if (empty($errors)) {
         $evenement = new Evenement(
             $titre, $description, $date_evenement, $type_evenement,
             $lieu_ou_lien, $statut
@@ -31,7 +58,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $message = "❌ Erreur lors de l'ajout de l'événement.";
         }
     } else {
-        $message = "❗ Tous les champs sont obligatoires. Titre: 4-10 lettres. Description: min 7 lettres.";
+        $message = implode('<br>', $errors); // Combine all error messages
     }
 }
 // Check if the request is for fetching events in JSON format
@@ -102,6 +129,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetchEvents') {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+        }
+        .calendar-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
         }
         /* Form styles */
         form { 
@@ -195,14 +227,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetchEvents') {
             padding: 15px 0;
             font-size: 14px;
         }
-        .voice-button {
-            background-color: #2196F3;
-            color: white;
-            border: none;
+        .micro-icon {
             cursor: pointer;
-            padding: 10px;
-            font-weight: bold;
-            margin-top: 10px;
+            margin-left: 5px;
+            font-size: 18px;
+            color: #2196F3;
+        }
+        .micro-icon-active {
+            color: #FF5722; /* Nouvelle couleur pendant l'enregistrement */
         }
     </style>
 </head>
@@ -221,7 +253,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetchEvents') {
         </div>
     </div>
 </div>
-<div id='calendar' style="width: 50%;" alignt="centre" >
+<div class="calendar-container">
+    <div id='calendar' style="width: 80%;">
+    </div>
 </div>
 <!-- Main Content -->
 <div class="main-container">
@@ -234,30 +268,36 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetchEvents') {
     <?php endif; ?>
     <form name="postForm" method="POST" onsubmit="return validateForm()">
         <label>Titre :</label>
-        <input type="text" name="titre" id="titre" required>
+        <input type="text" name="titre" id="titre" >
         <div id="titre-error" class="error-message"></div>
         <label>Description :</label>
-        <textarea name="description" id="description" rows="4" required></textarea>
+        <div style="display: flex; align-items: center;">
+            <textarea name="description" id="description" rows="4" ></textarea>
+            <i class="fas fa-microphone micro-icon" onclick="startVoiceRecognition()"></i>
+        </div>
         <div id="description-error" class="error-message"></div>
-        <button type="button" class="voice-button" onclick="startVoiceRecognition()">Parlez pour remplir la description</button>
         <label>Date de l'événement :</label>
-        <input type="date" name="date_evenement" required>
+        <input type="date" name="date_evenement" id="date_evenement" >
+        <div id="date-evenement-error" class="error-message"></div>
         <label>Type d'événement :</label>
-        <select name="type_evenement" required>
+        <select name="type_evenement" id="type_evenement" >
             <option value="">-- Sélectionnez --</option>
             <option value="présentiel">Présentiel</option>
             <option value="en ligne">En ligne</option>
             <option value="hybride">Hybride</option>
         </select>
+        <div id="type-evenement-error" class="error-message"></div>
         <label>Lieu ou lien :</label>
-        <input type="text" name="lieu_ou_lien" required>
+        <input type="text" name="lieu_ou_lien" id="lieu_ou_lien" >
+        <div id="lieu-ou-lien-error" class="error-message"></div>
         <label>Statut :</label>
-        <select name="statut" required>
+        <select name="statut" id="statut" >
             <option value="">-- Sélectionnez --</option>
             <option value="à venir">À venir</option>
             <option value="en cours">En cours</option>
             <option value="terminé">Terminé</option>
         </select>
+        <div id="statut-error" class="error-message"></div>
         <input type="submit" value="Ajouter l'événement">
     </form>
     <!-- Liste des événements -->
@@ -323,14 +363,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 });
-
 function validateForm() {
     let titre = document.getElementById("titre");
     let description = document.getElementById("description");
+    let lieuOuLien = document.getElementById("lieu_ou_lien");
+    let typeEvenement = document.getElementById("type_evenement");
+    let statut = document.getElementById("statut");
+    let dateEvenement = document.getElementById("date_evenement");
     let valid = true;
+
     // Reset des messages d'erreur
     document.getElementById("titre-error").innerText = "";
     document.getElementById("description-error").innerText = "";
+    document.getElementById("lieu-ou-lien-error").innerText = "";
+    document.getElementById("type-evenement-error").innerText = "";
+    document.getElementById("statut-error").innerText = "";
+    document.getElementById("date-evenement-error").innerText = "";
+
     // Vérif titre : 4 à 10 lettres
     if (titre.value.trim().length < 4 || titre.value.trim().length > 10) {
         document.getElementById("titre-error").innerText = "Le titre doit contenir entre 4 et 10 caractères.";
@@ -339,6 +388,7 @@ function validateForm() {
     } else {
         titre.classList.remove("error-border");
     }
+
     // Vérif description : min 7 lettres
     if (description.value.trim().length < 7) {
         document.getElementById("description-error").innerText = "La description doit contenir au moins 7 caractères.";
@@ -347,25 +397,78 @@ function validateForm() {
     } else {
         description.classList.remove("error-border");
     }
+
+    // Vérif lieu ou lien : min 5 lettres
+    if (lieuOuLien.value.trim().length < 5) {
+        document.getElementById("lieu-ou-lien-error").innerText = "Le lieu ou lien doit contenir au moins 5 caractères.";
+        lieuOuLien.classList.add("error-border");
+        valid = false;
+    } else {
+        lieuOuLien.classList.remove("error-border");
+    }
+
+    // Vérif type d'événement : obligatoire
+    if (typeEvenement.value.trim() === "") {
+        document.getElementById("type-evenement-error").innerText = "Le type d'événement est obligatoire.";
+        typeEvenement.classList.add("error-border");
+        valid = false;
+    } else {
+        typeEvenement.classList.remove("error-border");
+    }
+
+    // Vérif statut : obligatoire
+    if (statut.value.trim() === "") {
+        document.getElementById("statut-error").innerText = "Le statut est obligatoire.";
+        statut.classList.add("error-border");
+        valid = false;
+    } else {
+        statut.classList.remove("error-border");
+    }
+
+    // Vérif date de l'événement : pas antérieure à aujourd'hui
+    if (dateEvenement.value.trim() === "") {
+        document.getElementById("date-evenement-error").innerText = "La date de l'événement est obligatoire.";
+        dateEvenement.classList.add("error-border");
+        valid = false;
+    } else {
+        let selectedDate = new Date(dateEvenement.value);
+        let today = new Date();
+        today.setHours(0, 0, 0, 0); // Set time to 00:00:00 for comparison
+        if (selectedDate < today) {
+            document.getElementById("date-evenement-error").innerText = "La date de l'événement ne peut pas être antérieure à aujourd'hui.";
+            dateEvenement.classList.add("error-border");
+            valid = false;
+        } else {
+            dateEvenement.classList.remove("error-border");
+        }
+    }
+
     return valid;
 }
-
 function startVoiceRecognition() {
     if ('webkitSpeechRecognition' in window) {
         var recognition = new webkitSpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = 'fr-FR';
-
+        // Ajoutez la classe active avant de commencer la reconnaissance
+        var microphoneIcon = document.querySelector('.micro-icon');
+        microphoneIcon.classList.add('micro-icon-active');
         recognition.start();
-
         recognition.onresult = function(event) {
             var transcript = event.results[0][0].transcript;
             document.getElementById('description').value = transcript;
+            // Supprimez la classe active après avoir obtenu le résultat
+            microphoneIcon.classList.remove('micro-icon-active');
         };
-
         recognition.onerror = function(event) {
             console.error('Error occurred in recognition: ' + event.error);
+            // Supprimez la classe active en cas d'erreur
+            microphoneIcon.classList.remove('micro-icon-active');
+        };
+        recognition.onend = function() {
+            // Assurez-vous que la classe active est supprimée même si la reconnaissance se termine
+            microphoneIcon.classList.remove('micro-icon-active');
         };
     } else {
         alert('Reconnaissance vocale non supportée par ce navigateur.');

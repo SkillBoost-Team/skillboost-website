@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../model/reservation.php';
 
 class ReservationController
 {
@@ -134,4 +135,45 @@ class ReservationController
             return false;
         }
     }
+}
+
+$controller = new ReservationController();
+$message = '';
+$reservations = $controller->listReservations();
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    // Vérification des champs
+    $idevenement = intval(trim($_POST['idevenement']));
+    $id_utilisateur = intval(trim($_POST['id_utilisateur']));
+    $date_inscription = $_POST['date_inscription'];
+    $nombre_places = intval(trim($_POST['nombre_places']));
+    $statut_inscription = trim($_POST['statut_inscription']);
+    $methode_paiement = trim($_POST['methode_paiement']);
+    $montant_paye = floatval(trim($_POST['montant_paye']));
+    $id_reservation = intval(trim($_POST['id_reservation']));
+
+    if (
+        $idevenement > 0 &&
+        $id_utilisateur > 0 &&
+        !empty($date_inscription) &&
+        $nombre_places > 0 &&
+        !empty($statut_inscription) &&
+        !empty($methode_paiement) &&
+        $montant_paye >= 0 &&
+        $id_reservation > 0
+    ) {
+        $reservation = new Reservation(
+            $idevenement, $id_utilisateur, $date_inscription, $nombre_places,
+            $statut_inscription, $methode_paiement, $montant_paye, $id_reservation
+        );
+        if ($controller->addReservation($reservation)) {
+            $message = "✅ Réservation ajoutée avec succès !";
+            $reservations = $controller->listReservations(); // Rafraîchir la liste
+        } else {
+            $message = "❌ Erreur lors de l'ajout de la réservation.";
+        }
+    } else {
+        $message = "❗ Tous les champs sont obligatoires et doivent être correctement remplis.";
+    }
+    header("location: ../view/front/reservation.php");
 }

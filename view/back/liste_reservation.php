@@ -1,18 +1,22 @@
 <?php
 require_once '../../controller/reservationcontroller.php';
 require_once '../../model/reservation.php';
+require_once 'C:\xampp\htdocs\slah\skillboost-website\phpqrcode-master\phpqrcode-master\qrlib.php'; // Inclure la bibliothèque phpqrcode
 
 $controller = new ReservationController();
 $list = $controller->listReservations();
+
 // Filtrer les réservations selon les critères de recherche
 $statut_inscription = isset($_GET['statut_inscription']) ? $_GET['statut_inscription'] : '';
 $methode_paiement = isset($_GET['methode_paiement']) ? $_GET['methode_paiement'] : '';
 $date_inscription = isset($_GET['date_inscription']) ? $_GET['date_inscription'] : '';
+
 if (isset($list) && is_array($list)) {
     $reservations = $list;  // Assigner la liste de réservations si elle est valide
 } else {
     $reservations = [];  // Si $list est vide ou invalide, on initialise $reservations comme un tableau vide
 }
+
 // Appliquer les filtres
 if (!empty($statut_inscription) || !empty($methode_paiement) || !empty($date_inscription)) {
     $filteredReservations = [];
@@ -27,17 +31,33 @@ if (!empty($statut_inscription) || !empty($methode_paiement) || !empty($date_ins
     }
     $reservations = $filteredReservations;
 }
+
 // Définir les variables de comptage
 $en_attente = 0;
 $payer = 0;
 $annulee = 0;
 $total_reservations = 0;
+
 foreach ($reservations as $r) {
     if ($r['statut_inscription'] == 'en attente') $en_attente++;
     elseif ($r['statut_inscription'] == 'payée') $payer++;
     elseif ($r['statut_inscription'] == 'annulée') $annulee++;
     $total_reservations++;
 }
+
+// Générer les QR codes pour chaque réservation
+$tempDir = '../../temp/';
+if (!file_exists($tempDir)) {
+    mkdir($tempDir);
+}
+
+foreach ($reservations as &$r) {
+    $filename = $tempDir . 'qr_' . $r['id_reservation'] . '.png';
+    $codeContents = 'ID Réservation: ' . $r['id_reservation'] . ', ID Événement: ' . $r['idevenement'];
+    QRcode::png($codeContents, $filename, QR_ECLEVEL_L, 10);
+    $r['qr_code'] = $filename;
+}
+unset($r); // Supprimer la référence pour éviter des problèmes futurs
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -50,12 +70,12 @@ foreach ($reservations as $r) {
     <!-- Favicon -->
     <link href="img/favicon.ico" rel="icon">
     <!-- Google Web Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com ">
+    <link rel="preconnect" href="https://fonts.gstatic.com " crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito :wght@400;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Icon Font Stylesheet -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css " rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons @1.4.1/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Libraries Stylesheet -->
     <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
     <link href="lib/animate/animate.min.css" rel="stylesheet">
@@ -64,7 +84,30 @@ foreach ($reservations as $r) {
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
     <style>
-        /* Styles personnalisés */
+        /* Sidebar Start */
+        .sidebar {
+            width: 250px;
+            background-color: #343a40; /* Gris foncé */
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            transition: all 0.3s ease;
+            transform: translateX(-250px); /* Cacher la sidebar initialement */
+            z-index: 1000;
+        }
+        body:hover .sidebar {
+            transform: translateX(0);
+        }
+        .main-content {
+            margin-left: 0;
+            transition: all 0.3s ease;
+        }
+        body:hover .main-content {
+            margin-left: 250px;
+        }
+        /* Autres styles existants */
         .dashboard-container {
             padding: 2rem 0;
             min-height: calc(100vh - 300px);
@@ -126,65 +169,61 @@ foreach ($reservations as $r) {
         .confirm-payment-btn:hover {
             background-color: #0badd5;
         }
+        /* Styles personnalisés pour le QR code */
+        .qr-code-container {
+            display: none;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .qr-code-container img {
+            max-width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
-    <!-- Spinner Start -->
-    <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
-        <div class="spinner"></div>
-    </div>
-    <!-- Spinner End -->
-    <!-- Topbar Start -->
-    <div class="container-fluid bg-dark px-5 d-none d-lg-block">
-        <div class="row gx-0">
-            <div class="col-lg-8 text-center text-lg-start mb-2 mb-lg-0">
-                <div class="d-inline-flex align-items-center" style="height: 45px;">
-                    <small class="me-3 text-light"><i class="fa fa-map-marker-alt me-2"></i>Bloc E, Esprit , Cite La Gazelle</small>
-                    <small class="me-3 text-light"><i class="fa fa-phone-alt me-2"></i>+216 90 044 054</small>
-                    <small class="text-light"><i class="fa fa-envelope-open me-2"></i>SkillBoost@gmail.com</small>
-                </div>
-            </div>
-            <div class="col-lg-4 text-center text-lg-end">
-                <div class="d-inline-flex align-items-center" style="height: 45px;">
-                    <small class="text-light"><i class="fa fa-user-shield me-2"></i>Espace Administrateur</small>
-                </div>
-            </div>
+    <div class="sidebar">
+        <!-- Contenu de la sidebar -->
+        <div class="logo d-flex align-items-center justify-content-center">
+            <h2 class="m-0"><i class="fa fa-user-tie me-2"></i>SkillBoost</h2>
         </div>
-    </div>
-    <!-- Topbar End -->
-    <!-- Navbar & Carousel Start -->
-    <div class="container-fluid position-relative p-0">
-        <nav class="navbar navbar-expand-lg navbar-dark px-5 py-3 py-lg-0">
-            <a href="index.html" class="navbar-brand p-0">
-                <h1 class="m-0"><i class="fa fa-user-tie me-2"></i>SkillBoost</h1>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-                <span class="fa fa-bars"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarCollapse">
-                <div class="navbar-nav ms-auto py-0">
-                    <a href="admin-dashboard.html" class="nav-item nav-link">Tableau de bord</a>
-                    <a href="admin-users.html" class="nav-item nav-link">Utilisateurs</a>
-                    <a href="admin-projects.html" class="nav-item nav-link">Projets</a>
-                    <a href="admin-formations.html" class="nav-item nav-link">Formations</a>
-                    <a href="admin-events.php" class="nav-item nav-link">Événements</a>
-                    <a href="admin-investments.html" class="nav-item nav-link">Investissements</a>
-                    <a href="admin-reclamations.html" class="nav-item nav-link">Réclamations</a>
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fa fa-user-circle me-1"></i> Admin
-                        </a>
-                        <div class="dropdown-menu m-0">
-                            <a href="admin-profile.html" class="dropdown-item">Profil</a>
-                            <a href="admin-settings.html" class="dropdown-item">Paramètres</a>
-                            <div class="dropdown-divider"></div>
-                            <a href="logout.html" class="dropdown-item">Déconnexion</a>
-                        </div>
-                    </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="admin-dashboard.html" class="nav-link text-white"><i class="fas fa-home me-2"></i> Tableau de bord</a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-users.html" class="nav-link text-white"><i class="fas fa-users me-2"></i> Utilisateurs</a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-projects.html" class="nav-link text-white"><i class="fas fa-project-diagram me-2"></i> Projets</a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-formations.html" class="nav-link text-white"><i class="fas fa-book-reader me-2"></i> Formations</a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-events.php" class="nav-link text-white"><i class="fas fa-calendar-alt me-2"></i> Événements</a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-investments.html" class="nav-link text-white"><i class="fas fa-chart-line me-2"></i> Investissements</a>
+            </li>
+            <li class="nav-item">
+                <a href="admin-reclamations.html" class="nav-link text-white"><i class="fas fa-exclamation-triangle me-2"></i> Réclamations</a>
+            </li>
+            <li class="nav-item dropdown">
+                <a href="#" class="nav-link dropdown-toggle text-white" data-bs-toggle="dropdown">
+                    <i class="fas fa-user-circle me-1"></i> Admin
+                </a>
+                <div class="dropdown-menu bg-dark text-white">
+                    <a href="admin-profile.html" class="dropdown-item text-white">Profil</a>
+                    <a href="admin-settings.html" class="dropdown-item text-white">Paramètres</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="logout.html" class="dropdown-item text-white">Déconnexion</a>
                 </div>
-            </div>
-        </nav>
-        <!-- Dashboard Content -->
+            </li>
+        </ul>
+    </div>
+    <div class="main-content">
+        <!-- Contenu principal -->
         <div class="dashboard-container">
             <div class="container">
                 <div class="row mb-4">
@@ -319,10 +358,16 @@ foreach ($reservations as $r) {
                                                     <td>
                                                         <a href="voir_reservation.php?id=<?= isset($r['id_reservation']) ? $r['id_reservation'] : '' ?>" class="btn btn-sm btn-info action-btn">👁️</a>
                                                         <a href="update_reservation.php?id=<?= isset($r['id_reservation']) ? $r['id_reservation'] : '' ?>" class="btn btn-sm btn-warning action-btn">✏️</a>
-                                                        <a href="delate_reservation.php?id=<?= isset($r['id_reservation']) ? $r['id_reservation'] : '' ?>" class="btn btn-sm btn-danger action-btn" onclick="return confirm('Supprimer cette réservation ?')">🗑️</a>
+                                                        <a href="delete_reservation.php?id=<?= isset($r['id_reservation']) ? $r['id_reservation'] : '' ?>" class="btn btn-sm btn-danger action-btn" onclick="return confirm('Supprimer cette réservation ?')">🗑️</a>
                                                         <?php if ($statut_inscription == 'en attente'): ?>
-                                                            <a href="https://fr.flouci.com/" class="btn btn-sm confirm-payment-btn" target="_blank">Confirmer le paiement</a>
+                                                            <a href="https://fr.flouci.com/ " class="btn btn-sm confirm-payment-btn" target="_blank">Confirmer le paiement</a>
                                                         <?php endif; ?>
+                                                        <!-- Bouton pour afficher le QR code -->
+                                                        <button class="btn btn-sm btn-success action-btn show-qr-code-btn" data-id="<?= htmlspecialchars($r['id_reservation']) ?>">Afficher QR Code</button>
+                                                        <!-- Div pour afficher le QR code -->
+                                                        <div class="qr-code-container" id="qr-code-<?= htmlspecialchars($r['id_reservation']) ?>">
+                                                            <img src="<?= htmlspecialchars($r['qr_code']) ?>" alt="QR Code">
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             <?php endforeach ?>
@@ -335,6 +380,62 @@ foreach ($reservations as $r) {
                 </div>
             </div>
         </div>
+    </div>
+    <!-- Spinner Start -->
+    <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+        <div class="spinner"></div>
+    </div>
+    <!-- Spinner End -->
+    <!-- Topbar Start -->
+    <div class="container-fluid bg-dark px-5 d-none d-lg-block">
+        <div class="row gx-0">
+            <div class="col-lg-8 text-center text-lg-start mb-2 mb-lg-0">
+                <div class="d-inline-flex align-items-center" style="height: 45px;">
+                    <small class="me-3 text-light"><i class="fa fa-map-marker-alt me-2"></i>Bloc E, Esprit , Cite La Gazelle</small>
+                    <small class="me-3 text-light"><i class="fa fa-phone-alt me-2"></i>+216 90 044 054</small>
+                    <small class="text-light"><i class="fa fa-envelope-open me-2"></i>SkillBoost@gmail.com</small>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center text-lg-end">
+                <div class="d-inline-flex align-items-center" style="height: 45px;">
+                    <small class="text-light"><i class="fa fa-user-shield me-2"></i>Espace Administrateur</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Topbar End -->
+    <!-- Navbar & Carousel Start -->
+    <div class="container-fluid position-relative p-0">
+        <nav class="navbar navbar-expand-lg navbar-dark px-5 py-3 py-lg-0">
+            <a href="index.html" class="navbar-brand p-0">
+                <h1 class="m-0"><i class="fa fa-user-tie me-2"></i>SkillBoost</h1>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                <span class="fa fa-bars"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <div class="navbar-nav ms-auto py-0">
+                    <a href="admin-dashboard.html" class="nav-item nav-link">Tableau de bord</a>
+                    <a href="admin-users.html" class="nav-item nav-link">Utilisateurs</a>
+                    <a href="admin-projects.html" class="nav-item nav-link">Projets</a>
+                    <a href="admin-formations.html" class="nav-item nav-link">Formations</a>
+                    <a href="admin-events.php" class="nav-item nav-link">Événements</a>
+                    <a href="admin-investments.html" class="nav-item nav-link">Investissements</a>
+                    <a href="admin-reclamations.html" class="nav-item nav-link">Réclamations</a>
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fa fa-user-circle me-1"></i> Admin
+                        </a>
+                        <div class="dropdown-menu m-0">
+                            <a href="admin-profile.html" class="dropdown-item">Profil</a>
+                            <a href="admin-settings.html" class="dropdown-item">Paramètres</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="logout.html" class="dropdown-item">Déconnexion</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
     </div>
     <!-- Footer Start -->
     <div class="container-fluid bg-dark text-light mt-5 wow fadeInUp" data-wow-delay="0.1s">
@@ -385,8 +486,8 @@ foreach ($reservations as $r) {
     <!-- Back to Top -->
     <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded back-to-top"><i class="bi bi-arrow-up"></i></a>
     <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js "></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap @5.0.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="lib/wow/wow.min.js"></script>
     <script src="lib/easing/easing.min.js"></script>
     <script src="lib/waypoints/waypoints.min.js"></script>
@@ -401,6 +502,7 @@ foreach ($reservations as $r) {
                 document.getElementById('spinner').classList.remove('show');
             }, 500);
         });
+
         // Fonctions de tri
         document.addEventListener('DOMContentLoaded', function() {
             const table = document.getElementById('reservationTable');
@@ -441,6 +543,22 @@ foreach ($reservations as $r) {
                     });
                     // Ajout des lignes triées dans le tbody
                     rows.forEach(row => tableBody.appendChild(row));
+                });
+            });
+        });
+
+        // Gestion de l'affichage des QR codes
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.show-qr-code-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const qrCodeContainer = document.getElementById('qr-code-' + id);
+                    if (qrCodeContainer.style.display === 'none' || qrCodeContainer.style.display === '') {
+                        qrCodeContainer.style.display = 'block';
+                    } else {
+                        qrCodeContainer.style.display = 'none';
+                    }
                 });
             });
         });
