@@ -141,7 +141,6 @@ foreach ($gains_par_projet as &$projet) {
     }
     unset($rev);
 }
-unset($projet);
 ?>
 
 <!DOCTYPE html>
@@ -931,12 +930,23 @@ unset($projet);
                 </div>
             </div>
 
+            <!-- Sorting Buttons Start -->
+            <div class="row mb-3">
+                <div class="col-12 d-flex justify-content-end">
+                    <button id="sortResteBtn" class="btn btn-outline-primary" onclick="toggleSortProjects()">
+                        <i id="sortResteIcon" class="fas fa-sort-amount-up"></i>
+                        Trier par reste à collecter
+                    </button>
+                </div>
+            </div>
+            <!-- Sorting Buttons End -->
+
             <!-- Affichage des projets avec pagination -->
-            <div class="row g-5 mb-5">
+            <div class="row g-5 mb-5" id="projects-list">
                 <?php if (!empty($projets_page)): ?>
                     <?php foreach ($projets_page as $projet): ?>
                         <?php $is_favori = in_array($projet['id'], $favoris); ?>
-                        <div class="col-lg-4 col-md-6">
+                        <div class="col-lg-4 col-md-6 project-card">
                             <div class="card h-100 shadow-sm hover-shadow position-relative">
                                 <!-- Bouton favori -->
                                 <button type="button"
@@ -1007,7 +1017,7 @@ unset($projet);
                                     <div class="card bg-light mb-3">
                                         <div class="card-body p-2 text-center">
                                             <h6 class="card-subtitle mb-1 text-muted small">Reste à collecter</h6>
-                                            <h5 class="card-title mb-0 text-primary"><?php echo number_format($projet['montant_restant'], 2); ?> DT</h5>
+                                            <h5 class="card-title mb-0 text-primary reste-collecter"><?php echo number_format($projet['montant_restant'], 2); ?> DT</h5>
                                         </div>
                                     </div>
 
@@ -1605,6 +1615,30 @@ unset($projet);
             }
         })
         .catch(() => alert("Erreur lors de la suppression du favori"));
+    }
+    </script>
+
+    <!-- Script de tri des projets par reste à collecter -->
+    <script>
+    let sortOrder = 'asc';
+    function toggleSortProjects() {
+        sortOrder = (sortOrder === 'asc') ? 'desc' : 'asc';
+        sortProjects(sortOrder);
+        // Change icon
+        document.getElementById('sortResteIcon').className = sortOrder === 'asc'
+            ? 'fas fa-sort-amount-up'
+            : 'fas fa-sort-amount-down';
+    }
+
+    function sortProjects(order) {
+        const projectsList = document.getElementById('projects-list');
+        const cards = Array.from(projectsList.getElementsByClassName('project-card'));
+        cards.sort((a, b) => {
+            const resteA = parseFloat(a.querySelector('.reste-collecter').textContent.replace(/[^0-9.,]/g, '').replace(',', '.'));
+            const resteB = parseFloat(b.querySelector('.reste-collecter').textContent.replace(/[^0-9.,]/g, '').replace(',', '.'));
+            return order === 'asc' ? resteA - resteB : resteB - resteA;
+        });
+        cards.forEach(card => projectsList.appendChild(card));
     }
     </script>
 

@@ -27,29 +27,246 @@ $revenus_projets = isset($data['revenus_projets']) ? $data['revenus_projets'] : 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Custom CSS -->
     <style>
+        :root {
+            --sidebar-width: 250px;
+            --topbar-height: 60px;
+            --footer-height: 60px;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
         .main-content {
             padding: 20px;
+            margin-left: var(--sidebar-width);
+            margin-top: var(--topbar-height);
+            flex: 1;
         }
+
         .card {
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
+
         .table-responsive {
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
+
         .btn-action {
             margin: 0 2px;
         }
+
         .section-title {
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid #eee;
         }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background-color: #2c3e50;
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .sidebar-menu a {
+            display: block;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            background-color: #34495e;
+        }
+
+        .sidebar-menu i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Topbar Styles */
+        .topbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: var(--sidebar-width);
+            height: var(--topbar-height);
+            background-color: #000000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .topbar-search {
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .topbar-search input {
+            width: 100%;
+            padding: 8px 15px;
+            border: 1px solid #333;
+            border-radius: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .topbar-right a {
+            color: white !important;
+        }
+
+        /* Footer Styles */
+        .footer {
+            margin-left: var(--sidebar-width);
+            background-color: #000000;
+            color: white;
+            padding: 20px 0;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .footer-section {
+            margin: 10px 20px;
+        }
+
+        .footer-section h5 {
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 8px;
+        }
+
+        .footer-section ul li a {
+            color: #999;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-section ul li a:hover {
+            color: #fff;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+
+        .social-links {
+            margin-bottom: 15px;
+        }
+
+        .social-links a {
+            color: #999;
+            margin: 0 10px;
+            font-size: 18px;
+            transition: color 0.3s;
+        }
+
+        .social-links a:hover {
+            color: #fff;
+        }
     </style>
 </head>
 <body>
+    <!-- Sidebar Start -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="img/admin-avatar.jpg" alt="Admin Photo">
+            <h4>Ahmed Houimel</h4>
+            <p>Administrateur</p>
+        </div>
+        <div class="sidebar-menu">
+            <a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
+            <a href="utilisateurs.php"><i class="fas fa-users"></i> Utilisateurs</a>
+            <a href="admin-projects.html"><i class="fas fa-project-diagram"></i> Projets</a>
+            <a href="admin-formations.html"><i class="fas fa-graduation-cap"></i> Formations</a>
+            <a href="admin-events.html"><i class="fas fa-calendar-alt"></i> Événements</a>
+            <a href="admin-investments.html" class="active"><i class="fas fa-chart-line"></i> Investissements</a>
+            <a href="reclamations.php"><i class="fas fa-exclamation-circle"></i> Réclamations</a>
+            <a href="admin-settings.html"><i class="fas fa-cog"></i> Paramètres</a>
+            <a href="logout.html"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+        </div>
+    </div>
+    <!-- Sidebar End -->
+
+    <!-- Topbar Start -->
+    <div class="topbar">
+        <div class="topbar-search">
+            <input type="text" placeholder="Rechercher...">
+        </div>
+        <div class="topbar-right">
+            <a href="#" class="text-dark"><i class="fas fa-bell"></i></a>
+            <a href="#" class="text-dark"><i class="fas fa-envelope"></i></a>
+            <div class="dropdown">
+                <a href="#" class="text-dark dropdown-toggle" data-bs-toggle="dropdown">
+                    <img src="img/admin-avatar.jpg" alt="Admin" style="width: 32px; height: 32px; border-radius: 50%;">
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profil</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Paramètres</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Déconnexion</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Topbar End -->
+
     <div class="container-fluid">
         <div class="row">
             <!-- Main Content -->
@@ -100,6 +317,12 @@ $revenus_projets = isset($data['revenus_projets']) ? $data['revenus_projets'] : 
                 <!-- Table -->
                 <div class="card">
                     <div class="card-body">
+                        <!-- Export PDF Button for Investissements -->
+                        <div class="mb-2 d-flex justify-content-end">
+                            <button class="btn btn-danger" onclick="exportInvestissementsPDF()">
+                                <i class="fas fa-file-pdf"></i> Exporter Investissements en PDF
+                            </button>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
@@ -205,7 +428,12 @@ $revenus_projets = isset($data['revenus_projets']) ? $data['revenus_projets'] : 
                                 </div>
                             </div>
                         </div>
-
+                        <!-- Export PDF Button for Revenus -->
+                        <div class="mb-2 d-flex justify-content-end" style="padding: 0 20px;">
+                            <button class="btn btn-danger" onclick="exportRevenusPDF(<?php echo $projet_id; ?>)">
+                                <i class="fas fa-file-pdf"></i> Exporter Revenus en PDF
+                            </button>
+                        </div>
                         <div id="collapse<?php echo $projet_id; ?>" class="collapse" aria-labelledby="heading<?php echo $projet_id; ?>" data-bs-parent="#accordionProjets">
                             <div class="card-body">
                                 <div class="table-responsive">
@@ -295,6 +523,59 @@ $revenus_projets = isset($data['revenus_projets']) ? $data['revenus_projets'] : 
         </div>
     </div>
 
+    <!-- Footer Start -->
+    <footer class="footer">
+        <div class="container-fluid">
+            <div class="footer-links">
+                <div class="footer-section">
+                    <h5>À propos</h5>
+                    <ul>
+                        <li><a href="#">Qui sommes-nous</a></li>
+                        <li><a href="#">Notre mission</a></li>
+                        <li><a href="#">Carrières</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h5>Services</h5>
+                    <ul>
+                        <li><a href="#">Investissements</a></li>
+                        <li><a href="#">Formations</a></li>
+                        <li><a href="#">Projets</a></li>
+                        <li><a href="#">Événements</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h5>Support</h5>
+                    <ul>
+                        <li><a href="#">FAQ</a></li>
+                        <li><a href="#">Centre d'aide</a></li>
+                        <li><a href="#">Réclamations</a></li>
+                        <li><a href="#">Politique de confidentialité</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h5>Contact</h5>
+                    <ul>
+                        <li><i class="fas fa-phone me-2"></i> +216 XX XXX XXX</li>
+                        <li><i class="fas fa-envelope me-2"></i> contact@skillboost.com</li>
+                        <li><i class="fas fa-map-marker-alt me-2"></i> Tunis, Tunisie</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="social-links">
+                <a href="#"><i class="fab fa-facebook"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-linkedin"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+            </div>
+            <div class="footer-bottom">
+                <p class="mb-0">&copy; 2024 SkillBoost. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+    <!-- Footer End -->
+
     <!-- Modal de modification d'investissement -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -367,7 +648,9 @@ $revenus_projets = isset($data['revenus_projets']) ? $data['revenus_projets'] : 
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Custom JS -->
     <script>
     // Fonction pour ouvrir le modal de modification
@@ -660,6 +943,53 @@ $revenus_projets = isset($data['revenus_projets']) ? $data['revenus_projets'] : 
             console.error('Erreur:', error);
             showAlert('Une erreur est survenue lors de l\'ajout', 'danger');
         });
+    }
+
+    function exportInvestissementsPDF() {
+        const table = document.querySelector('.table-responsive table');
+        html2canvas(table).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jspdf.jsPDF('l', 'pt', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth - 20, pdfHeight);
+            pdf.save('investissements.pdf');
+        });
+    }
+
+    function exportRevenusPDF(projetId) {
+        const table = document.querySelector(`#collapse${projetId} .table-responsive table`);
+        html2canvas(table).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jspdf.jsPDF('l', 'pt', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth - 20, pdfHeight);
+            pdf.save('revenus_projet_' + projetId + '.pdf');
+        });
+    }
+
+    let sortOrder = 'asc';
+    function toggleSortProjects() {
+        sortOrder = (sortOrder === 'asc') ? 'desc' : 'asc';
+        sortProjects(sortOrder);
+        // Change icon
+        document.getElementById('sortResteIcon').className = sortOrder === 'asc'
+            ? 'fas fa-sort-amount-up'
+            : 'fas fa-sort-amount-down';
+    }
+
+    function sortProjects(order) {
+        const projectsList = document.getElementById('projects-list');
+        const cards = Array.from(projectsList.getElementsByClassName('project-card'));
+        cards.sort((a, b) => {
+            const resteA = parseFloat(a.querySelector('.reste-collecter').textContent.replace(/[^0-9.,]/g, '').replace(',', '.'));
+            const resteB = parseFloat(b.querySelector('.reste-collecter').textContent.replace(/[^0-9.,]/g, '').replace(',', '.'));
+            return order === 'asc' ? resteA - resteB : resteB - resteA;
+        });
+        cards.forEach(card => projectsList.appendChild(card));
     }
     </script>
 </body>
