@@ -1,3 +1,6 @@
+<?php
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -72,7 +75,11 @@
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <div class="navbar-nav ms-auto py-0">
                     <a href="index.php" class="nav-item nav-link active">Accueil</a>
-                    <a href="login.php" class="nav-item nav-link">Connexion</a>
+                    <?php if (isset($_SESSION['user'])): ?>
+                        <a href="logout.php" class="nav-item nav-link">Déconnexion</a>
+                    <?php else: ?>
+                        <a href="login.php" class="nav-item nav-link">Connexion</a>
+                    <?php endif; ?>
                     <a href="#" class="nav-item nav-link">Projets</a>
                     <a href="Formations.php" class="nav-item nav-link">Formations</a>
                     <a href="evenements.php" class="nav-item nav-link">Événements</a>
