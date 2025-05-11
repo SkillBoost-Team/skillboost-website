@@ -183,4 +183,26 @@ class DashboardModel {
 
         return $stmt->fetchAll();
     }
+
+    public function getStatsByNiveau() {
+        $query = "SELECT niveau, COUNT(*) as count FROM formation GROUP BY niveau";
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute();
+        $statsByNiveau=$stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stats = [];
+        foreach ($statsByNiveau as $stat) {
+            $stats[$stat['niveau']] = $stat['count'];
+        }
+        return $stats;
+    }
+    
+    public function countTotalQuizPasses() {
+        $query = "SELECT COUNT(*) AS total_passes 
+                  FROM quiz_results 
+                  WHERE passed = 1";
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['total_passes'] ?? 0;
+    }
 }

@@ -8,8 +8,6 @@ require_once '../../model/add-formationFrontModel.php';
 // Create an instance of the add-formationFrontModel
 $model = new AddFormationFrontModel($pdo);
 
-
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = [];
     $quizErrors = [];
@@ -164,7 +162,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
 ?>
 
 <!DOCTYPE html>

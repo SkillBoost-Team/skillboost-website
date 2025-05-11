@@ -1,16 +1,18 @@
 <?php
-// Include the configuration file to connect to the database
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+?>
+<?php
+session_start();
 require_once '../../config/config.php';
-
-// Include the view-formationFrontModel to interact with the database
 require_once '../../model/view-formationFrontModel.php';
 
-// Create an instance of the view-formationFrontModel
+// Create an instance of the model
 $model = new ViewFormationFrontModel($pdo);
 
 // Get the formation ID from the URL
 $id = $_GET['id'] ?? null;
-
 if (!$id) {
     header('Location: formations.php');
     exit();
@@ -18,7 +20,6 @@ if (!$id) {
 
 // Fetch the formation details
 $formation = $model->getFormationById($id);
-
 if (!$formation) {
     header('Location: formations.php');
     exit();
@@ -32,30 +33,26 @@ $question1 = $quiz['question1'] ?? '';
 $question2 = $quiz['question2'] ?? '';
 $question3 = $quiz['question3'] ?? '';
 
-// Function to format the date
-function formatDate($date) {
-    return date('d/m/Y', strtotime($date));
-}
-
 // Handle quiz submission
 $userAnswers = [];
 $score = 0;
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userAnswers = [
         'answer1' => isset($_POST['answer1']) ? (bool)$_POST['answer1'] : false,
         'answer2' => isset($_POST['answer2']) ? (bool)$_POST['answer2'] : false,
         'answer3' => isset($_POST['answer3']) ? (bool)$_POST['answer3'] : false
     ];
-
     if ($quiz) {
-        $score = ($quiz['answer1'] == $userAnswers['answer1']) + 
-                 ($quiz['answer2'] == $userAnswers['answer2']) + 
+        $score = ($quiz['answer1'] == $userAnswers['answer1']) +
+                 ($quiz['answer2'] == $userAnswers['answer2']) +
                  ($quiz['answer3'] == $userAnswers['answer3']);
     }
 }
-?>
 
+// Check if the user has passed the quiz
+$quizId = $quiz['id']; // Get the quiz ID
+$hasPassed = $model->hasUserPassedQuiz($_SESSION['userId'], $quizId);
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -244,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     <!-- Page Header End -->
-    <!-- View Formation Content -->
+    <!-- Content -->
     <div class="container-xxl py-5">
         <div class="container">
             <div class="row g-5">
@@ -252,81 +249,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Formation Details Card -->
                     <div class="card shadow-sm details-card">
                         <div class="card-body">
-                            <h3> <?= htmlspecialchars($formation['titre']) ?></h3>
+                            <h3><?= htmlspecialchars($formation['titre']) ?></h3>
                             <p><strong>Description:</strong> <?= htmlspecialchars($formation['description']) ?></p>
                             <p><strong>Niveau:</strong> <?= htmlspecialchars($formation['niveau']) ?></p>
                             <p><strong>Durée (heures):</strong> <?= htmlspecialchars($formation['duree']) ?></p>
-                            <p><strong>Date de création:</strong> <?= htmlspecialchars(formatDate($formation['date_creation'])) ?></p>
+                            <p><strong>Date de création:</strong> <?= htmlspecialchars(date('d/m/Y', strtotime($formation['date_creation']))) ?></p>
                             <p><strong>Certificat:</strong> <?= htmlspecialchars($formation['certificat']) ?></p>
-                            <div class="mt-4">
-                                <a href="formations.php" class="btn btn-secondary">
-                                    <i class="fas fa-arrow-left me-1"></i> Retour
-                                </a>
-                            </div>
+                            <a href="formations.php" class="btn btn-secondary"><i class="fas fa-arrow-left me-1"></i> Retour</a>
                         </div>
                     </div>
+
                     <!-- Quiz Section -->
                     <?php if ($quiz): ?>
                         <div class="card shadow-sm details-card quiz-section">
                             <div class="card-body">
                                 <h3>Quiz</h3>
-                                <form method="POST" action="">
+                                <form method="POST" action="../../controller/view-formationFrontController.php?id=<?= htmlspecialchars($_GET['id']) ?>">
                                     <div class="mb-3">
                                         <label class="form-label"><?= htmlspecialchars($question1) ?></label>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="answer1" id="answer1_true" value="1" required>
-                                            <label class="form-check-label" for="answer1_true">
-                                                Vrai
-                                            </label>
+                                            <label class="form-check-label" for="answer1_true">Vrai</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="answer1" id="answer1_false" value="0" required>
-                                            <label class="form-check-label" for="answer1_false">
-                                                Faux
-                                            </label>
+                                            <label class="form-check-label" for="answer1_false">Faux</label>
                                         </div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label"><?= htmlspecialchars($question2) ?></label>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="answer2" id="answer2_true" value="1" required>
-                                            <label class="form-check-label" for="answer2_true">
-                                                Vrai
-                                            </label>
+                                            <label class="form-check-label" for="answer2_true">Vrai</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="answer2" id="answer2_false" value="0" required>
-                                            <label class="form-check-label" for="answer2_false">
-                                                Faux
-                                            </label>
+                                            <label class="form-check-label" for="answer2_false">Faux</label>
                                         </div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label"><?= htmlspecialchars($question3) ?></label>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="answer3" id="answer3_true" value="1" required>
-                                            <label class="form-check-label" for="answer3_true">
-                                                Vrai
-                                            </label>
+                                            <label class="form-check-label" for="answer3_true">Vrai</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="answer3" id="answer3_false" value="0" required>
-                                            <label class="form-check-label" for="answer3_false">
-                                                Faux
-                                            </label>
+                                            <label class="form-check-label" for="answer3_false">Faux</label>
                                         </div>
                                     </div>
-                                    <div class="col-12">
-                                        <button class="btn btn-primary w-100 py-3" type="submit">Soumettre le Quiz</button>
-                                    </div>
+                                    <button class="btn btn-primary w-100 py-3" type="submit">Soumettre le Quiz</button>
                                 </form>
+
                                 <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
                                     <div class="admin-notes mt-4">
                                         <h4>Résultats du Quiz</h4>
+                                        <p><strong>Score:</strong> <?= $score ?>/3</p>
                                         <p><strong>Question 1:</strong> <?= htmlspecialchars($question1) ?> - Réponse: <?= $quiz['answer1'] ? 'Vrai' : 'Faux' ?></p>
                                         <p><strong>Question 2:</strong> <?= htmlspecialchars($question2) ?> - Réponse: <?= $quiz['answer2'] ? 'Vrai' : 'Faux' ?></p>
                                         <p><strong>Question 3:</strong> <?= htmlspecialchars($question3) ?> - Réponse: <?= $quiz['answer3'] ? 'Vrai' : 'Faux' ?></p>
-                                        <p><strong>Score:</strong> <?= htmlspecialchars($score) ?>/3</p>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($hasPassed==1): ?>
+                                    <div class="text-center mt-4">
+                                        <p>Congratulations! You have successfully passed the quiz.</p>
+                                        <form action="../../controller/download_certificate.php" method="POST" style="display: inline;">
+                                            <input type="hidden" name="quizId" value="<?= htmlspecialchars($quiz['id']) ?>">
+                                            <button type="submit" class="btn btn-success">Download Certificate</button>
+                                        </form>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="text-center mt-4">
+                                        <p>You need to pass the quiz to download the certificate.</p>
                                     </div>
                                 <?php endif; ?>
                             </div>

@@ -1,9 +1,15 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+?>
+<?php
+session_start();
 require_once '../config/config.php';
 require_once '../model/view-formationFrontModel.php';
 
 class ViewFormationFrontController {
-    private $model;
+    public $model;
 
     public function __construct() {
         global $pdo;
@@ -13,7 +19,6 @@ class ViewFormationFrontController {
     // Display the formation details and handle quiz submission
     public function index() {
         $id = $_GET['id'] ?? null;
-
         if (!$id) {
             header('Location: formations.php');
             exit();
@@ -21,7 +26,6 @@ class ViewFormationFrontController {
 
         // Fetch the formation details
         $formation = $this->model->getFormationById($id);
-
         if (!$formation) {
             header('Location: formations.php');
             exit();
@@ -31,30 +35,41 @@ class ViewFormationFrontController {
         $quiz = $this->model->getQuizByFormationId($id);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $answer1 = isset($_POST['answer1']) ? (int)$_POST['answer1'] : 0;
-            $answer2 = isset($_POST['answer2']) ? (int)$_POST['answer2'] : 0;
-            $answer3 = isset($_POST['answer3']) ? (int)$_POST['answer3'] : 0;
+            $correct = 0;
+            $correct += (isset($_POST['answer1']) && $_POST['answer1'] == $quiz['answer1']) ? 1 : 0;
+            $correct += (isset($_POST['answer2']) && $_POST['answer2'] == $quiz['answer2']) ? 1 : 0;
+            $correct += (isset($_POST['answer3']) && $_POST['answer3'] == $quiz['answer3']) ? 1 : 0;
 
-            // Store the answers or process them as needed
-            // For now, we'll just display them
-            $userAnswers = [
-                'answer1' => $answer1,
-                'answer2' => $answer2,
-                'answer3' => $answer3
-            ];
+            $score = $correct;
+            $passed = ($score >= 2) ? 1 : 0;
 
-            // Calculate score
-            $score = 0;
-            if ($quiz) {
-                $score = ($quiz['answer1'] == $answer1) + ($quiz['answer2'] == $answer2) + ($quiz['answer3'] == $answer3);
-            }
+            // Save participation
+            $this->model->saveParticipation($_SESSION['userId'], $id, $quiz['id'], $score, $passed);
 
-            // Pass data to the view
-            require_once '../view/back/view-formation.php';
+            // Redirect back to the same page
+            header("Location: ../view/front/view-formation.php?id=$id");
+            exit();
         } else {
-            // Pass data to the view
-            require_once '../view/back/view-formation.php';
+            require_once '../view/front/view-formation.php';
         }
+    }
+    public function downloadCertificate($quizName) {
+        // Retrieve userId and userName from the session
+        if (!isset($_SESSION['userId']) || !isset($_SESSION['userName'])) {
+            die("User not logged in.");
+        }
+        $userId = $_SESSION['userId'];
+        $userName = $_SESSION['userName'];
+    
+        // Generate the certificate
+        $filePath = $this->model->generateCertificatePath($userId);
+        CertificateGenerator::generateCertificate($userId, $userName, $quizName);
+    
+        // Redirect to the certificate file for download
+        header("Content-Type: application/pdf");
+        header("Content-Disposition: attachment; filename=certificate_user_$userId.pdf");
+        readfile($filePath);
+        exit;
     }
 }
 

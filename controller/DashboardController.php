@@ -227,6 +227,53 @@ class DashboardController {
 
         header("location: ../view/back/dashboard.php");
     }
+
+    /**
+     * Export all formations to a PDF file
+     */
+    public function exportPDF() {
+        require_once __DIR__ . '/../fpdf/fpdf.php';
+        $formations = $this->model->getAllFormations();
+        
+        $pdf = new FPDF();
+        $pdf->AddPage();
+        $pdf->SetMargins(10, 15, 10);
+        $pdf->SetFont('Arial', 'B', 18);
+        $pdf->Cell(0, 15, iconv('UTF-8', 'windows-1252', 'Liste des Formations'), 0, 1, 'C');
+        $pdf->Ln(2);
+        
+        // Table header styling
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->SetFillColor(52, 152, 219); // Blue
+        $pdf->SetTextColor(255);
+        $header = ['Titre', 'Description', 'Niveau', 'Durée', 'Date Création', 'Certificat'];
+        $widths = [38, 60, 22, 15, 30, 20];
+        foreach ($header as $i => $col) {
+            $pdf->Cell($widths[$i], 10, iconv('UTF-8', 'windows-1252', $col), 1, 0, 'C', true);
+        }
+        $pdf->Ln();
+        
+        // Table body
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->SetTextColor(0);
+        $fill = false;
+        foreach ($formations as $formation) {
+            $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255); // Light gray/white
+            $pdf->Cell($widths[0], 8, iconv('UTF-8', 'windows-1252', $formation['titre']), 1, 0, 'L', true);
+            // Description with MultiCell
+            $x = $pdf->GetX(); $y = $pdf->GetY();
+            $pdf->MultiCell($widths[1], 8, iconv('UTF-8', 'windows-1252', $formation['description']), 1, 'L', true);
+            $pdf->SetXY($x + $widths[1], $y);
+            $pdf->Cell($widths[2], 8, iconv('UTF-8', 'windows-1252', $formation['niveau']), 1, 0, 'C', true);
+            $pdf->Cell($widths[3], 8, $formation['duree'], 1, 0, 'C', true);
+            $pdf->Cell($widths[4], 8, date('d/m/Y', strtotime($formation['date_creation'])), 1, 0, 'C', true);
+            $pdf->Cell($widths[5], 8, iconv('UTF-8', 'windows-1252', $formation['certificat']), 1, 0, 'C', true);
+            $pdf->Ln();
+            $fill = !$fill;
+        }
+        $pdf->Output('D', 'formations.pdf');
+        exit();
+    }
 }
 
 
@@ -260,6 +307,10 @@ switch ($action) {
             header('Location: /index.php?action=index');
             exit();
         }
+        break;
+    case 'exportPDF':
+        $controller = new DashboardController();
+        $controller->exportPDF();
         break;
     default:
         header('Location: dashboard.php');

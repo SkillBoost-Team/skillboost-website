@@ -5,6 +5,8 @@ require_once '../../config/config.php';
 // Include the DashboardModel to interact with the database
 require_once '../../model/DashboardModel.php';
 
+
+
 // Create an instance of the DashboardModel
 $model = new DashboardModel($pdo);
 
@@ -108,6 +110,10 @@ if (empty($filters['titre']) && empty($filters['niveau']) && empty($filters['dat
     // Call the filtering function in the controller
     $formations = $model->filterFormations($filters);
 }
+
+//get stats 
+$stats=$model->getStatsByNiveau();
+$totalQuizPasses=$model->countTotalQuizPasses();
 
 ?>
 
@@ -378,11 +384,11 @@ if (empty($filters['titre']) && empty($filters['niveau']) && empty($filters['dat
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h2 class="mb-0"><i class="fas fa-book me-2"></i>Gestion des Formations</h2>
                             <div>
-                                <button id="exportBtn" class="btn btn-outline-secondary me-2">
-                                    <i class="fas fa-file-export me-1"></i> Exporter
-                                </button>
                                 <a href="add-formation.php" class="btn btn-primary">
                                     <i class="fas fa-plus me-1"></i> Nouvelle Formation
+                                </a>
+                                <a href="../../controller/DashboardController.php?action=exportPDF" class="btn btn-success ms-2" target="_blank">
+                                    <i class="fas fa-file-pdf me-1"></i> Exporter PDF
                                 </a>
                             </div>
                         </div>
@@ -413,6 +419,55 @@ if (empty($filters['titre']) && empty($filters['niveau']) && empty($filters['dat
                                 </div>
                             </form>
                         </div>
+                        <!--stat start-->
+                        <!-- Cartes Statistiques -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="stat-card bg-primary">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="count"><?= $stats['Débutant'] ?></div>
+                                            <div class="title">Débutant</div>
+                                        </div>
+                                        <i class="fas fa-exclamation-circle fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-info">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="count"><?= $stats['Intermédiaire'] ?></div>
+                                            <div class="title">Intermediaires</div>
+                                        </div>
+                                        <i class="fas fa-spinner fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-success">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="count"><?= $stats['Avancé'] ?></div>
+                                            <div class="title">Avances</div>
+                                        </div>
+                                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                           <div class="col-md-3">
+                                <div class="stat-card bg-danger">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="count"><?= htmlspecialchars($totalQuizPasses) ?></div>
+                                            <div class="title">Certificats délivrés</div>
+                                        </div>
+                                        <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!--stat end-->
                         <!-- Tableau des Formations -->
                         <div class="card shadow-sm">
                             <div class="card-body">
@@ -450,9 +505,6 @@ if (empty($filters['titre']) && empty($filters['niveau']) && empty($filters['dat
                                                         </a>
                                                         <a href="../../controller/DashboardController.php?action=generate&id=<?= $formation['id'] ?>" class="generate-link" title="Generate Questions">
                                                             <i class="fas fa-question-circle"></i>
-                                                        </a>
-                                                        <a href="/generate-certificate" class="icon-button" title="Generate Certificate">
-                                                            <i class="fas fa-certificate"></i> <!-- Certificate icon -->
                                                         </a>
                                                     </td>
                                                 </tr>
@@ -515,6 +567,7 @@ if (empty($filters['titre']) && empty($filters['niveau']) && empty($filters['dat
             </div>
         </div>
     </div>
+    
     <!-- Footer Start -->
     <div class="container-fluid bg-dark text-light mt-5 wow fadeInUp" data-wow-delay="0.1s">
         <div class="container">
